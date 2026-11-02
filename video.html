@@ -602,7 +602,8 @@
 
     el.sliderInertia.addEventListener('input', e => {
       SIM.kInertia = parseFloat(e.target.value);
-      el.valInertia.textContent = `${SIM.kInertia.toFixed(3)} kg·m²`;
+      const joules = (0.5 * SIM.kInertia * SIM.flywheelOmega * SIM.flywheelOmega).toFixed(1);
+      el.valInertia.textContent = `${SIM.kInertia.toFixed(3)} kg·m² (${joules} J stored)`;
       SIM.brakingBurst = Math.max(SIM.brakingBurst, 0.4);
     });
 
@@ -709,26 +710,51 @@
       const visualCantileverFreq = Math.min(14, 5 + SIM.piezoFreq * 0.12);
       SIM.cantileverDisp = Math.sin(SIM.time * visualCantileverFreq * (Math.PI * 2)) * (SIM.piezoAmp * 2.5);
 
-      // 3. Kinetic Flywheel / Rotor Dynamics
-      // Inertia (kInertia) governs spin-up resistance and spin-down persistence
-      const spinDecayRate = 0.08 / Math.max(0.001, SIM.kInertia);
-      if (SIM.vehicleState === 'decelerating' && SIM.currentSpeed > 1) {
-        const brakingIntensity = Math.abs(SIM.currentSpeed / 100);
-        // Spin-up rate scales inversely with flywheel inertia
-        const spinAccel = (brakingIntensity * 750) / Math.max(0.5, SIM.kInertia * 100);
-        SIM.flywheelOmega = Math.min(450, SIM.flywheelOmega + spinAccel * dt);
-      } else if (SIM.vehicleState === 'cruising' && SIM.currentSpeed > 2) {
-        const cruiseTarget = (SIM.currentSpeed / 120) * 40;
-        SIM.flywheelOmega += (cruiseTarget - SIM.flywheelOmega) * dt * 2.0;
+      // 3. Kinetic Flywheel / Rotor Dynamics & Axle Mechanical Coupling
+      // Rear axle angular velocity: omega_axle = v_m/s / r_wheel
+      const axleOmega = wheelAngularSpeed; // rad/s
+      const gearRatio = 4.2; // step-up gear ratio from rear wheel axle to high-speed generator shaft
+      const coupledAxleOmega = axleOmega * gearRatio; // coupled spindle speed
+
+      // Flywheel inertia (kInertia) physically resists angular acceleration and provides kinetic energy persistence
+      // Damping from mechanical bearing friction + electromagnetic back-EMF energy extraction
+      const frictionDecay = 0.055 / Math.max(0.001, SIM.kInertia);
+      const backEmfDecay = (SIM.kCoupling * (SIM.iKinetic / 1000) * 14.0) / Math.max(0.001, SIM.kInertia);
+      const spinDecayRate = frictionDecay + backEmfDecay;
+
+      if (SIM.vehicleState === 'decelerating' && SIM.currentSpeed > 0.4) {
+        // Regenerative braking: kinetic momentum of vehicle spins up the high-inertia flywheel
+        const brakingDecel = Math.abs(currentAccel) > 0 ? Math.abs(currentAccel) : 18;
+        const brakingIntensity = Math.min(1.8, (brakingDecel / 15) + (SIM.currentSpeed / 75));
+        const spinAccel = (brakingIntensity * 680) / Math.max(0.4, SIM.kInertia * 95);
+        SIM.flywheelOmega = Math.min(520, SIM.flywheelOmega + spinAccel * dt);
+
+        // Electromagnetic counter-torque from back-EMF assists physical vehicle deceleration (regen braking)
+        const regenBrakingTorque = SIM.kCoupling * (SIM.iKinetic / 1000) * 35;
+        SIM.currentSpeed = Math.max(0, SIM.currentSpeed - regenBrakingTorque * dt);
+      } else if (SIM.currentSpeed > 0.8) {
+        // Cruising or accelerating: generator rotor is coupled to axle rotation
+        const targetOmega = coupledAxleOmega;
+        if (SIM.flywheelOmega < targetOmega) {
+          // Spin up to match drive axle, resisted by flywheel inertia
+          const spinUpRate = 14.0 / (1.0 + SIM.kInertia * 70);
+          SIM.flywheelOmega += (targetOmega - SIM.flywheelOmega) * dt * spinUpRate;
+        } else {
+          // Freewheeling above axle speed with inertial decay
+          SIM.flywheelOmega = Math.max(targetOmega, SIM.flywheelOmega - spinDecayRate * dt);
+        }
       } else {
-        SIM.flywheelOmega = Math.max(0, SIM.flywheelOmega - (spinDecayRate * SIM.flywheelOmega + 12) * dt);
+        // Vehicle stopped/idle: flywheel coasts down gradually according to inertia
+        SIM.flywheelOmega = Math.max(0, SIM.flywheelOmega - (spinDecayRate * SIM.flywheelOmega + 6) * dt);
       }
-      SIM.rotorAngle += SIM.flywheelOmega * dt * 0.35;
+
+      // Rotor continuous rotation angle for visual armature
+      SIM.rotorAngle += SIM.flywheelOmega * dt;
 
       // Kinetic Electrical Output: V = k_coupling * omega
       const vKinRaw = SIM.kCoupling * SIM.flywheelOmega;
       SIM.vKinetic = Math.max(0, vKinRaw - VF_DIODE);
-      SIM.iKinetic = SIM.vKinetic > 0 ? (SIM.vKinetic / 26.0) * 1000 : 0; // 26 ohm load impedance
+      SIM.iKinetic = SIM.vKinetic > 0 ? (SIM.vKinetic / 24.0) * 1000 : 0; // 24 ohm load & coil impedance
 
       // 4. Thermal (Seebeck) Output: Non-linear alpha & temperature gradient
       // Vehicle speed provides convective radiator cooling while exhaust manifold heats up
@@ -804,7 +830,7 @@
     }
 
     // ── High-Fidelity Canvas Rendering ──
-    function drawCarScene(ctx, W, H) {
+    function drawCarScene(ctx, W, H, dt = 0.016) {
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, W, H);
@@ -941,7 +967,11 @@
       const dashLen = 50;
       const gapLen = 40;
       const totalDashCycle = dashLen + gapLen;
-      const laneOffset = (SIM.roadOffset * 1.4) % totalDashCycle;
+      // Exact Zero-Slip Synchronization with Wheel Rotation
+      // 1 Radian of wheel turn rolls road by exactly wheelR pixels
+      const wheelAngularVel = (SIM.currentSpeed / 3.6) / 0.35;
+      SIM.roadOffset += wheelAngularVel * wheelR * dt;
+      const laneOffset = (SIM.roadOffset) % totalDashCycle;
 
       ctx.save();
       ctx.strokeStyle = '#fef08a';
@@ -1265,44 +1295,201 @@
       }
 
       // ─────────────────────────────────────────────────────────────
-      // B. REAR DC AXLE GENERATOR & ROTOR
-      // Rotates synchronized with vehicle speed and inertia decay
+      // B. REAR DC AXLE GENERATOR & ROTOR (STAGE 1 KINETIC ENHANCEMENT)
+      // Visibly coupled to rear drive axle, with dynamic inertia flywheel & magnetic stator
       // ─────────────────────────────────────────────────────────────
-      const genX = carX + carW * 0.22;
-      const genY = cy + carH * 0.62;
-      
-      // Generator blue electromagnetic excitation aura
-      const genGlowRadius = 18 + (SIM.flywheelOmega / 400) * 22 + SIM.brakingBurst * 18;
+      const rearAxleX = carX + carW * 0.20;
+      const rearAxleY = cy + carH * 0.78;
+      const genX = carX + carW * 0.235;
+      const genY = cy + carH * 0.60;
+
+      // 1. Mechanical Drive Axle Linkage from Rear Hub to Generator Gearbox
+      ctx.save();
+      ctx.strokeStyle = '#475569';
+      ctx.lineWidth = 3.5;
+      ctx.beginPath();
+      ctx.moveTo(rearAxleX, rearAxleY - 4);
+      ctx.lineTo(genX - 14, genY + 12);
+      ctx.stroke();
+
+      // Axle CV Joint Boot
+      ctx.fillStyle = '#1e293b';
+      ctx.fillRect(rearAxleX - 2, rearAxleY - 8, 5, 8);
+      ctx.fillRect(genX - 16, genY + 8, 6, 8);
+
+      // 2. Bevel Gearbox Housing
+      ctx.fillStyle = '#1e293b';
+      ctx.strokeStyle = '#64748b';
+      ctx.lineWidth = 1.6;
+      ctx.strokeRect(genX - 18, genY + 6, 12, 12);
+      ctx.fillRect(genX - 18, genY + 6, 12, 12);
+      // Gearbox gear mesh indicator
+      ctx.fillStyle = '#94a3b8';
+      ctx.beginPath();
+      ctx.arc(genX - 12, genY + 12, 3.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 3. Coaxial Flywheel Inertia Disc (Direct visual mapping to sliderInertia)
+      // Radius and rim thickness scale visibly with SIM.kInertia (0.001 to 0.02)
+      const fwNorm = Math.min(1.0, Math.max(0.0, (SIM.kInertia - 0.001) / 0.019));
+      const fwRadius = 13 + fwNorm * 10; // 13px to 23px
+      const fwThickness = 3.5 + fwNorm * 5.5; // 3.5px to 9px
+
+      // Flywheel Outer Rim (Heavy inertia mass)
+      ctx.save();
+      ctx.translate(genX - 8, genY);
+      const fwGrad = ctx.createLinearGradient(0, -fwRadius, 0, fwRadius);
+      fwGrad.addColorStop(0.0, '#94a3b8');
+      fwGrad.addColorStop(0.5, '#475569');
+      fwGrad.addColorStop(1.0, '#1e293b');
+      ctx.fillStyle = fwGrad;
+      ctx.strokeStyle = '#cbd5e1';
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.ellipse(0, 0, fwThickness, fwRadius, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      // Flywheel rotating mass pockets / balance holes (spins with SIM.rotorAngle)
+      ctx.save();
+      for (let h = 0; h < 4; h++) {
+        const hAng = SIM.rotorAngle + (h * Math.PI / 2);
+        const hY = Math.sin(hAng) * (fwRadius * 0.65);
+        const hX = Math.cos(hAng) * (fwThickness * 0.45);
+        ctx.fillStyle = '#0f172a';
+        ctx.beginPath();
+        ctx.arc(hX, hY, 1.6 + fwNorm * 0.8, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+      ctx.restore();
+
+      // 4. Stator Electromagnetic Excitation Aura
+      // Intensifies during deceleration regen and higher flywheel RPM
+      const isRegen = SIM.vehicleState === 'decelerating' && SIM.currentSpeed > 0.5;
+      const genRpm = SIM.flywheelOmega * 9.5493;
+      const auraRatio = Math.min(1.0, SIM.flywheelOmega / 450);
+      const genGlowRadius = 18 + auraRatio * 24 + (isRegen ? 18 : 0);
+      const genGlowAlpha = Math.min(0.95, 0.2 + auraRatio * 0.55 + (isRegen ? 0.45 : 0.0));
+
       const genGlow = ctx.createRadialGradient(genX, genY, 3, genX, genY, genGlowRadius);
-      const genGlowAlpha = Math.min(0.95, 0.2 + (SIM.flywheelOmega / 400) * 0.75 + SIM.brakingBurst * 0.5);
       genGlow.addColorStop(0.0, `rgba(56, 189, 248, ${genGlowAlpha})`);
-      genGlow.addColorStop(0.6, `rgba(14, 165, 233, ${genGlowAlpha * 0.5})`);
+      genGlow.addColorStop(0.55, `rgba(14, 165, 233, ${genGlowAlpha * 0.45})`);
       genGlow.addColorStop(1.0, 'rgba(14, 165, 233, 0.0)');
       ctx.fillStyle = genGlow;
-      ctx.fillRect(genX - genGlowRadius, genY - genGlowRadius, genGlowRadius * 2, genGlowRadius * 2);
+      ctx.beginPath();
+      ctx.arc(genX, genY, genGlowRadius, 0, Math.PI * 2);
+      ctx.fill();
 
-      // Stator Housing
+      // Stator Circular Casing with Heat Dissipation Ribs
+      ctx.fillStyle = '#0f172a';
       ctx.strokeStyle = '#0284c7';
-      ctx.lineWidth = 2.4;
-      ctx.strokeRect(genX - 14, genY - 14, 28, 28);
+      ctx.lineWidth = 2.2;
+      ctx.beginPath();
+      ctx.arc(genX, genY, 15, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
 
-      // Rotating Generator Rotor Armature (Synchronized to flywheelOmega)
+      // Stator Magnetic Pole Shoes (North & South cobalt poles)
+      // North Pole (Top)
+      ctx.fillStyle = '#0284c7';
+      ctx.fillRect(genX - 7, genY - 14, 14, 5);
+      // South Pole (Bottom)
+      ctx.fillStyle = '#0369a1';
+      ctx.fillRect(genX - 7, genY + 9, 14, 5);
+
+      // Stator Copper Field Windings
+      ctx.fillStyle = '#d97706';
+      ctx.fillRect(genX - 13, genY - 5, 4, 10);
+      ctx.fillRect(genX + 9, genY - 5, 4, 10);
+
+      // Airgap Magnetic Flux Arcs (React to kCoupling slider)
+      if (SIM.flywheelOmega > 10) {
+        ctx.save();
+        const fluxAlpha = Math.min(0.85, (SIM.kCoupling / 0.02) * (SIM.flywheelOmega / 300));
+        ctx.strokeStyle = `rgba(56, 189, 248, ${fluxAlpha})`;
+        ctx.lineWidth = 1.0;
+        ctx.setLineDash([2, 3]);
+        ctx.beginPath();
+        ctx.arc(genX, genY, 11, -Math.PI * 0.7, -Math.PI * 0.3);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(genX, genY, 11, Math.PI * 0.3, Math.PI * 0.7);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      // 5. Rotating 6-Pole Armature Rotor (Synchronized to SIM.rotorAngle)
       ctx.save();
       ctx.translate(genX, genY);
       ctx.rotate(SIM.rotorAngle);
-      ctx.strokeStyle = '#38bdf8';
-      ctx.lineWidth = 2.4;
-      ctx.shadowColor = '#38bdf8';
-      ctx.shadowBlur = 8 + (SIM.flywheelOmega / 400) * 10;
-      ctx.strokeRect(-10, -10, 20, 20);
+
+      // Armature Steel Hub
+      ctx.fillStyle = '#334155';
       ctx.beginPath();
-      ctx.moveTo(-10, 0); ctx.lineTo(10, 0);
-      ctx.moveTo(0, -10); ctx.lineTo(0, 10);
-      ctx.stroke();
-      // Copper coil windings
-      ctx.fillStyle = '#f59e0b';
-      ctx.fillRect(-8, -4, 4, 8);
-      ctx.fillRect(4, -4, 4, 8);
+      ctx.arc(0, 0, 5, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 6 Radial Armature Coils (Enameled Copper Windings)
+      for (let p = 0; p < 6; p++) {
+        const poleAngle = (p * Math.PI) / 3;
+        ctx.save();
+        ctx.rotate(poleAngle);
+        // Copper winding bundle
+        ctx.fillStyle = '#f59e0b';
+        ctx.strokeStyle = '#b45309';
+        ctx.lineWidth = 0.8;
+        ctx.fillRect(-2, -10, 4, 7);
+        ctx.strokeRect(-2, -10, 4, 7);
+        // Pole tip laminations
+        ctx.fillStyle = '#94a3b8';
+        ctx.fillRect(-2.5, -11.5, 5, 1.8);
+        ctx.restore();
+      }
+
+      // Copper Commutator Disc
+      ctx.fillStyle = '#fbbf24';
+      ctx.beginPath();
+      ctx.arc(0, 0, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+
+      // Carbon Brushes with Micro Commutator Sparks
+      ctx.fillStyle = '#64748b';
+      ctx.fillRect(genX - 1.5, genY - 7, 3, 2.5);
+      ctx.fillRect(genX - 1.5, genY + 4.5, 3, 2.5);
+
+      if ((isRegen || SIM.flywheelOmega > 180) && Math.sin(SIM.time * 45) > 0.2) {
+        // Dynamic electric commutation spark
+        ctx.fillStyle = '#ffffff';
+        ctx.shadowColor = '#38bdf8';
+        ctx.shadowBlur = 6;
+        ctx.beginPath();
+        ctx.arc(genX + (Math.random() - 0.5) * 3, genY - 5.5, 1.2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+      }
+
+      // 6. Holographic Micro-HUD Badge above Generator
+      ctx.save();
+      ctx.font = '8px monospace';
+      ctx.textAlign = 'center';
+      if (isRegen) {
+        ctx.fillStyle = '#38bdf8';
+        ctx.shadowColor = '#0284c7';
+        ctx.shadowBlur = 6;
+        const regenW = (SIM.vKinetic * SIM.iKinetic / 1000).toFixed(1);
+        ctx.fillText(`⚡ REGEN: +${regenW}W`, genX, genY - 20);
+        ctx.fillStyle = '#34d399';
+        ctx.fillText(`BACK-EMF HARVEST`, genX, genY - 12);
+      } else if (SIM.flywheelOmega > 15) {
+        ctx.fillStyle = '#94a3b8';
+        ctx.shadowBlur = 0;
+        const joules = (0.5 * SIM.kInertia * SIM.flywheelOmega * SIM.flywheelOmega).toFixed(1);
+        ctx.fillText(`${genRpm.toFixed(0)} RPM`, genX, genY - 19);
+        ctx.fillStyle = '#38bdf8';
+        ctx.fillText(`${joules} J`, genX, genY - 11);
+      }
       ctx.restore();
 
       // ─────────────────────────────────────────────────────────────
@@ -1428,35 +1615,90 @@
       // Particle flow speed & density map strictly to modeled current
       // ─────────────────────────────────────────────────────────────
 
-      // 1. Kinetic Pathway (BLUE): Rear Axle Generator -> Central Supercapacitor
+      // 1. Kinetic Pathway (BLUE): Rear Axle Generator -> Central Supercapacitor (STAGE 1 ENHANCED)
       if (SIM.vKinetic > 0.05 || SIM.flywheelOmega > 2) {
         ctx.save();
-        ctx.fillStyle = '#38bdf8';
-        ctx.shadowColor = '#0284c7';
-        ctx.shadowBlur = 8;
-        const currentRatio = Math.min(1.0, SIM.iKinetic / 90.0);
-        const kCount = Math.min(POOL_SIZE, Math.floor(currentRatio * 18) + 4);
-        const particleSpeed = 1.2 + currentRatio * 2.5;
+        const currentRatio = Math.min(1.0, SIM.iKinetic / 85.0);
+        const kCount = Math.min(POOL_SIZE, Math.floor(currentRatio * 20) + 4);
+        const particleSpeed = 1.3 + currentRatio * 3.2;
 
-        for (let p = 0; p < kCount; p++) {
-          const pt = kineticParticles[p];
-          pt.progress = (pt.progress + pt.speed * particleSpeed * dt * 0.7) % 1.0;
-          const prog = pt.progress;
-          // Interpolate along actual conduit
-          const px = (genX + 14) + prog * (capBoxX - (genX + 14));
-          const py = genY + prog * ((capBoxY + 8) - genY) + Math.sin(prog * Math.PI * 4 + SIM.time * 12) * pt.lateral;
-          const pSize = 1.8 + currentRatio * 1.5;
-          ctx.beginPath();
-          ctx.arc(px, py, pSize, 0, Math.PI * 2);
-          ctx.fill();
-        }
-        // Active energy pulse line
-        ctx.strokeStyle = `rgba(56, 189, 248, ${0.3 + currentRatio * 0.5})`;
-        ctx.lineWidth = 1.8;
+        // Active conduit pulsating glow
+        const wireAlpha = 0.35 + currentRatio * 0.55;
+        ctx.strokeStyle = `rgba(56, 189, 248, ${wireAlpha})`;
+        ctx.lineWidth = 2.0 + currentRatio * 1.5;
+        ctx.shadowColor = '#0284c7';
+        ctx.shadowBlur = 6 + currentRatio * 10;
         ctx.beginPath();
         ctx.moveTo(genX + 14, genY);
         ctx.lineTo(capBoxX, capBoxY + 8);
         ctx.stroke();
+
+        // High-frequency electrical conduction wave pulse along the wire
+        if (currentRatio > 0.15) {
+          const wavePhase = (SIM.time * 18 * particleSpeed) % (Math.PI * 2);
+          ctx.strokeStyle = '#ffffff';
+          ctx.lineWidth = 1.4;
+          ctx.beginPath();
+          const waveSteps = 16;
+          for (let w = 0; w <= waveSteps; w++) {
+            const wProg = w / waveSteps;
+            const wx = (genX + 14) + wProg * (capBoxX - (genX + 14));
+            const wy = genY + wProg * ((capBoxY + 8) - genY) + Math.sin(wProg * Math.PI * 6 + wavePhase) * (1.2 * currentRatio);
+            if (w === 0) ctx.moveTo(wx, wy); else ctx.lineTo(wx, wy);
+          }
+          ctx.stroke();
+        }
+
+        // Cinematic Particles with Comet Tails
+        for (let p = 0; p < kCount; p++) {
+          const pt = kineticParticles[p];
+          pt.progress = (pt.progress + pt.speed * particleSpeed * dt * 0.75) % 1.0;
+          const prog = pt.progress;
+
+          // Conduit coordinates
+          const px = (genX + 14) + prog * (capBoxX - (genX + 14));
+          const py = genY + prog * ((capBoxY + 8) - genY) + Math.sin(prog * Math.PI * 4 + SIM.time * 12) * pt.lateral;
+
+          // Tail vector points opposite to travel direction
+          const tailLen = (5 + particleSpeed * 2.5) * (1 - prog * 0.3);
+          const dx = capBoxX - (genX + 14);
+          const dy = (capBoxY + 8) - genY;
+          const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+          const tailX = px - (dx / dist) * tailLen;
+          const tailY = py - (dy / dist) * tailLen;
+
+          // Trailing comet gradient
+          const cometGrad = ctx.createLinearGradient(tailX, tailY, px, py);
+          cometGrad.addColorStop(0.0, 'rgba(56, 189, 248, 0.0)');
+          cometGrad.addColorStop(0.6, 'rgba(56, 189, 248, 0.65)');
+          cometGrad.addColorStop(1.0, '#ffffff');
+
+          ctx.strokeStyle = cometGrad;
+          ctx.lineWidth = 2.0 + currentRatio * 1.2;
+          ctx.beginPath();
+          ctx.moveTo(tailX, tailY);
+          ctx.lineTo(px, py);
+          ctx.stroke();
+
+          // Glowing Head Spark
+          ctx.fillStyle = '#ffffff';
+          ctx.shadowColor = '#38bdf8';
+          ctx.shadowBlur = 8 + currentRatio * 6;
+          ctx.beginPath();
+          ctx.arc(px, py, 1.8 + currentRatio * 1.2, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        // Supercapacitor Terminal Spark Splash during active regen
+        if (currentRatio > 0.3 && Math.sin(SIM.time * 24) > 0.2) {
+          ctx.fillStyle = '#38bdf8';
+          ctx.shadowColor = '#34d399';
+          ctx.shadowBlur = 10;
+          ctx.beginPath();
+          ctx.arc(capBoxX, capBoxY + 8, 3.2, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
         ctx.restore();
       }
 
@@ -1716,7 +1958,7 @@
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
       const cW = carCanvas.width / dpr;
       const cH = carCanvas.height / dpr;
-      drawCarScene(carCtx, cW, cH);
+      drawCarScene(carCtx, cW, cH, dtFrame);
       drawWaveform();
       updateUI();
     }
