@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <meta charset="UTF-8">
+  <title>S.E.E.S. Master Innovation Dossier v1.0</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 18mm 16mm 18mm 16mm;
+      @bottom-right {
+        content: counter(page);
+      }
+    }
+    body {
+      font-family: 'Segoe UI', Helvetica, Arial, sans-serif;
+      color: #1e293b;
+      line-height: 1.55;
+      font-size: 10.5pt;
+      margin: 0;
+      padding: 0;
+      background: #ffffff;
+    }
+    .page-break {
+      page-break-after: always;
+      break-after: page;
+    }
+    /* Cover Page */
+    .cover {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      height: 94vh;
+      box-sizing: border-box;
+      padding: 30px 10px;
+    }
+    .cover-badge {
+      display: inline-block;
+      background: #0284c7;
+      color: #ffffff;
+      font-size: 9pt;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      padding: 5px 14px;
+      border-radius: 999px;
+      margin-bottom: 20px;
+    }
+    .cover-title {
+      font-size: 34pt;
+      font-weight: 900;
+      color: #0f172a;
+      line-height: 1.1;
+      margin: 0 0 10px 0;
+    }
+    .cover-subtitle {
+      font-size: 16pt;
+      font-weight: 600;
+      color: #0284c7;
+      margin: 0 0 25px 0;
+    }
+    .cover-desc {
+      font-size: 11pt;
+      color: #475569;
+      max-width: 600px;
+      line-height: 1.6;
+      border-left: 3px solid #0284c7;
+      padding-left: 15px;
+      margin-bottom: 30px;
+    }
+    .cover-meta-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 18px;
+      margin-top: 20px;
+    }
+    .meta-item {
+      font-size: 9.5pt;
+    }
+    .meta-label {
+      color: #64748b;
+      font-size: 8.5pt;
+      text-transform: uppercase;
+      font-weight: 600;
+      display: block;
+      margin-bottom: 2px;
+    }
+    .meta-value {
+      color: #0f172a;
+      font-weight: 700;
+    }
+    /* Typography */
+    h1 {
+      font-size: 19pt;
+      font-weight: 800;
+      color: #0f172a;
+      border-bottom: 2px solid #0284c7;
+      padding-bottom: 6px;
+      margin-top: 0;
+      margin-bottom: 14px;
+    }
+    h2 {
+      font-size: 13pt;
+      font-weight: 700;
+      color: #0369a1;
+      margin-top: 18px;
+      margin-bottom: 8px;
+    }
+    h3 {
+      font-size: 11pt;
+      font-weight: 700;
+      color: #334155;
+      margin-top: 12px;
+      margin-bottom: 4px;
+    }
+    p {
+      margin-top: 0;
+      margin-bottom: 10px;
+      text-align: justify;
+    }
+    /* Callout Boxes */
+    .callout {
+      background: #f0f9ff;
+      border-left: 4px solid #0284c7;
+      padding: 10px 14px;
+      border-radius: 0 8px 8px 0;
+      margin: 12px 0;
+      font-size: 9.5pt;
+    }
+    .callout-warning {
+      background: #fffbeb;
+      border-left: 4px solid #f59e0b;
+      padding: 10px 14px;
+      border-radius: 0 8px 8px 0;
+      margin: 12px 0;
+      font-size: 9.5pt;
+    }
+    /* Tables */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 12px 0;
+      font-size: 9pt;
+    }
+    th, td {
+      border: 1px solid #cbd5e1;
+      padding: 7px 10px;
+      text-align: left;
+    }
+    th {
+      background: #f1f5f9;
+      color: #0f172a;
+      font-weight: 700;
+    }
+    tr:nth-child(even) {
+      background: #f8fafc;
+    }
+    /* Images */
+    .img-container {
+      text-align: center;
+      margin: 15px 0;
+    }
+    .img-container img {
+      width: 100%;
+      max-width: 650px;
+      border-radius: 8px;
+      border: 1px solid #cbd5e1;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+    .caption {
+      font-size: 8.5pt;
+      color: #64748b;
+      font-style: italic;
+      margin-top: 6px;
+    }
+    /* Math block */
+    .equation-box {
+      background: #f8fafc;
+      border: 1px dashed #94a3b8;
+      border-radius: 6px;
+      padding: 8px 12px;
+      font-family: 'Cambria Math', 'Times New Roman', serif;
+      font-size: 10pt;
+      margin: 8px 0;
+      text-align: center;
+    }
+    .diagram-ascii {
+      background: #0f172a;
+      color: #38bdf8;
+      font-family: Consolas, monospace;
+      font-size: 7.5pt;
+      line-height: 1.25;
+      padding: 10px;
+      border-radius: 6px;
+      overflow-x: auto;
+      margin: 10px 0;
+    }
+    .footer-note {
+      font-size: 8pt;
+      color: #94a3b8;
+      text-align: center;
+      margin-top: 30px;
+      border-top: 1px solid #e2e8f0;
+      padding-top: 8px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="bg-slate-950 p-4 border-b border-slate-800 mb-6">
+  <!-- Top Navigation & Command Bar -->
+  <nav class="max-w-7xl mx-auto mb-4 bg-slate-900/90 border border-slate-800 rounded-2xl px-5 py-3 flex flex-wrap items-center justify-between gap-4 shadow-xl backdrop-blur">
+    <div class="flex items-center gap-3">
+      <a href="index.html" class="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-500 to-emerald-400 p-0.5 shadow-lg shadow-sky-500/20 block">
+        <div class="w-full h-full bg-slate-950 rounded-[10px] flex items-center justify-center font-black text-sky-400 tracking-wider">
+          SEES
+        </div>
+      </a>
+      <div>
+        <div class="flex items-center gap-2">
+          <a href="index.html" class="text-base font-extrabold text-white tracking-wide hover:text-sky-300 transition">PROJECT S.E.E.S.</a>
+          <span class="text-[10px] px-2 py-0.5 rounded-full bg-sky-500/10 text-sky-400 border border-sky-500/30 font-mono">v2.0 PRO</span>
+        </div>
+        <p class="text-xs text-slate-400 font-medium">Self-Sustaining Energy System</p>
+      </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="flex items-center flex-wrap gap-2 text-xs">
+      <a href="index.html" class="px-3.5 py-1.5 font-semibold rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white transition">
+        Virtual Lab
+      </a>
+      <a href="sees_virtual_lab.html" class="px-3.5 py-1.5 font-semibold rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white transition">
+        Digital Twin
+      </a>
+      <a href="master_project_document.html" class="px-3.5 py-1.5 font-semibold rounded-xl bg-sky-500 text-slate-950 shadow-md transition">
+        Master Dossier
+      </a>
+      <a href="sees_architecture_specification.html" class="px-3.5 py-1.5 font-semibold rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white transition">
+        Architecture Spec
+      </a>
+      <a href="sees_rc_car_prototype_guide.html" class="px-3.5 py-1.5 font-semibold rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white transition">
+        RC Prototype
+      </a>
+      <a href="video.html" class="px-3.5 py-1.5 font-semibold rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-md transition flex items-center gap-1.5">
+        <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+        Video Showcase
+      </a>
+    </div>
+  </nav>
+</div>
+
+
+  <!-- ==================== COVER PAGE ==================== -->
+  <div class="cover page-break">
+    <div>
+      <span class="cover-badge">Official Master Dossier • Atal Tinkering Lab (ATL)</span>
+      <h1 class="cover-title">PROJECT S.E.E.S.</h1>
+      <div class="cover-subtitle">Self-Sustaining Energy System</div>
+      <div class="cover-desc">
+        A Comprehensive Multi-Source Energy Recovery & Power Management Architecture: 
+        Integrating Deceleration Kinetic Energy, Thermoelectric Waste Heat, and Suspension Vibration 
+        to Power Vehicle Auxiliary Electrical Loads.
+      </div>
+    </div>
+
+    <div>
+      <div class="img-container" style="margin: 10px 0;">
+        <img src="car_energy_recovery.jpg" alt="S.E.E.S. In-Car Architectural Overview" style="max-height: 250px; object-fit: cover;">
+        <div class="caption">Figure 1.0: Architectural In-Car Implementation Schematic of S.E.E.S. Colour code: blue = kinetic (wheel hubs/brakes), orange = thermal (engine and exhaust), purple = vibration (shock absorbers); all three feed the controller, then the battery and the auxiliary loads (headlights, dashboard).</div>
+      </div>
+
+      <div class="cover-meta-grid">
+        <div class="meta-item">
+          <span class="meta-label">Project Lead</span>
+          <span class="meta-value">Durgam.Noushik</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">ATL Vice-Captain</span>
+          <span class="meta-value">Narsimha</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">Team Member</span>
+          <span class="meta-value">B.Tejesh</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">Faculty Mentor</span>
+          <span class="meta-value">Teacher-Reviewed & Supervised</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">Development Stage</span>
+          <span class="meta-value">Simulation & Virtual Lab Bench (physical build pending)</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">Document Release</span>
+          <span class="meta-value">v1.0 Master • October 2026</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== CHAPTER 1: EXECUTIVE SUMMARY & PROBLEM ==================== -->
+  <div>
+    <h1>1. Executive Summary & Problem Statement</h1>
+    
+    <h2>1.1 Executive Summary</h2>
+    <p>
+      Modern electric and internal-combustion vehicles expend significant portions of their onboard energy supplying auxiliary systems—including headlights, digital dashboards, HVAC fans, micro-controllers, and communication radios. Project <strong>S.E.E.S. (Self-Sustaining Energy System)</strong> is an applied research initiative designed to evaluate whether dissipated ambient energy (kinetic deceleration, exhaust/engine heat, and road-induced vibration) can be harvested and conditioned to supply auxiliary equipment.
+    </p>
+    
+    <div class="callout">
+      <strong>Scientific Integrity Guarantee:</strong> S.E.E.S. is strictly governed by the First and Second Laws of Thermodynamics. It does <em>not</em> claim perpetual motion or infinite range. Every recovered watt originates from energy introduced into the vehicle and is bounded by conversion efficiencies and conditioning overhead.
+    </div>
+
+    <h2>1.2 The Problem Statement & Auxiliary Load Burden</h2>
+    <p>
+      In passenger vehicles and micro-mobility platforms, auxiliary electrical equipment typically consumes a continuous baseline of <strong>200 W–1,500 W</strong>. In electric vehicles, this auxiliary draw directly depletes high-voltage traction batteries, reducing effective driving range by 10%–25% under night driving and active climate control.
+    </p>
+    <p>
+      <strong>The Core Research Question:</strong> Can a unified, multi-source recovery architecture capture sufficient ambient waste energy under realistic drive cycles to supply a measurable share (20% to 40%) of auxiliary demand without parasitic penalties on vehicle propulsion?
+    </p>
+
+    <h2>1.3 Project Core Objectives</h2>
+    <ul>
+      <li><strong>Objective 1:</strong> Formulate rigorous mathematical SI models for kinetic, thermal, and vibration energy capture.</li>
+      <li><strong>Objective 2:</strong> Design a Multi-Input Single-Output (MISO) power conditioning bus with passive Schottky isolation to prevent cross-feeding between mismatched sources.</li>
+      <li><strong>Objective 3:</strong> Build an interactive computer simulation with thermodynamic assertion testing (Section 8 compliant).</li>
+      <li><strong>Objective 4:</strong> Conduct benchtop experimental validation using accessible ATL lab equipment within a ₹0 budget constraint.</li>
+    </ul>
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- ==================== CHAPTER 2: THE THREE RECOVERY PATHWAYS ==================== -->
+  <div>
+    <h1>2. The Three Energy Recovery Pathways</h1>
+
+    <h2>2.1 Pathway 1: Kinetic Energy Recovery (Deceleration Capture)</h2>
+    <p>
+      The theoretical mechanical energy released during vehicle deceleration from speed $v_1$ to $v_2$ is governed by:
+    </p>
+    <div class="equation-box">
+      <strong>ΔE<sub>k</sub> = ½ m (v₁² − v₂²)</strong> &nbsp;&nbsp;&nbsp;[Joules]
+    </div>
+    <p>
+      In S.E.E.S., this mechanical energy is converted to electricity using motor-generators operating in regenerative braking mode. The net electrical energy delivered to the auxiliary bus accounts for driveline, motor, and inverter efficiencies:
+    </p>
+    <div class="equation-box">
+      <strong>E<sub>k,delivered</sub> = ΔE<sub>k</sub> · η<sub>mech</sub> · η<sub>gen</sub> · η<sub>inverter</sub></strong> &nbsp;&nbsp;&nbsp;(Typical combined η ≈ 65% – 75%)
+    </div>
+    <p>
+      Kinetic recovery functions as a <strong>high-power intermittent surge harvester</strong>, yielding up to 750 mW on benchtop rigs and several kilowatts during vehicle deceleration.
+    </p>
+    <p>
+      In vehicles that already have regenerative braking, the kinetic channel only re-routes energy that braking would otherwise store in the traction battery; new energy comes mainly from the thermal and vibration channels.
+    </p>
+
+    <h2>2.2 Pathway 2: Thermoelectric Heat Recovery (Seebeck Effect)</h2>
+    <p>
+      Thermoelectric generators (TEGs) exploit the Seebeck effect: electron diffusion across a temperature gradient ($\Delta T = T_{hot} - T_{cold}$) creates an open-circuit voltage:
+    </p>
+    <div class="equation-box">
+      <strong>V<sub>oc</sub> = α · ΔT</strong> &nbsp;&nbsp;&nbsp;[where α ≈ 0.032 V/K (calibrated value used in the model)]
+    </div>
+    <p>
+      The maximum theoretical conversion efficiency is constrained by the Carnot efficiency and the material figure of merit ($ZT$):
+    </p>
+    <div class="equation-box">
+      <strong>η<sub>max</sub> = (ΔT / T<sub>hot</sub>) · [ (√(1 + ZT) − 1) / (√(1 + ZT) + T<sub>cold</sub>/T<sub>hot</sub>) ]</strong>
+    </div>
+    <p>
+      Commercial Bismuth Telluride (Bi<sub>2</sub>Te<sub>3</sub>) modules achieve 5% to 8% conversion efficiency at $\Delta T = 60\text{–}100^\circ\text{C}$. In automotive exhaust environments, TEGs provide a <strong>continuous baseload electrical supply</strong>.
+    </p>
+    <p>
+      Exhaust TEGs apply to petrol, diesel and hybrid vehicles. Pure EVs have no exhaust; they would use lower-temperature heat (motor, inverter, battery coolant), which gives much less power.
+    </p>
+
+    <h2>2.3 Pathway 3: Mechanical Vibration Harvesting (The Bimodal Principle)</h2>
+    <p>
+      Vibration recovery in S.E.E.S. is strictly distinguished between two distinct physical regimes:
+    </p>
+    <table>
+      <thead>
+        <tr>
+          <th>Regime</th>
+          <th>Transducer Type</th>
+          <th>Power Output Range</th>
+          <th>Intended System Role</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Micro-Scale</strong></td>
+          <td>Piezoelectric Ceramic (PZT / PVDF Cantilever)</td>
+          <td>10 µW – 50 mW (Power density &lt; 10 mW/cm³)</td>
+          <td>Trickle charging, autonomous wireless IoT sensors, TPMS.</td>
+        </tr>
+        <tr>
+          <td><strong>Macro-Scale</strong></td>
+          <td>Electromagnetic Regenerative Shock Absorber</td>
+          <td>20 W – 200 W per vehicle damper</td>
+          <td>Direct auxiliary battery charging over rough terrain and speed bumps.</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="callout-warning">
+      <strong>Scientific Clarification:</strong> Claims of hundreds of watts generated purely from surface piezoelectric patches are physically baseless due to high internal impedance (~kΩ to MΩ). S.E.E.S. correctly models piezoelectric outputs in the low-milliwatt domain while reserving macro-power for electromagnetic dampers. The bench model uses an optimistic 450 Ω effective source resistance, so real piezo output would be lower.
+    </div>
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- ==================== CHAPTER 3: IN-CAR SYSTEM ARCHITECTURE ==================== -->
+  <div>
+    <h1>3. Automotive Integration Architecture</h1>
+    
+    <div class="img-container">
+      <img src="car_energy_recovery.jpg" alt="S.E.E.S. Automotive Integration">
+      <div class="caption">Figure 3.1: In-Car Implementation Schematic showing Layer 1 (Sources) through Layer 4 (Auxiliary Loads). Colour code: blue = kinetic (wheel hubs/brakes), orange = thermal (engine and exhaust), purple = vibration (shock absorbers); all three feed the controller, then the battery and the auxiliary loads (headlights, dashboard).</div>
+    </div>
+
+    <h2>3.1 Layered Architecture Overview</h2>
+    <div class="diagram-ascii">
+┌──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                              S.E.E.S. 4-LAYER TOPOLOGY                                               │
+├─────────────────────────┬──────────────────────────────┬─────────────────────────────────────────────────────────────┤
+│ LAYER 1: Energy Sources │ Deceleration Inertia (Δv)    │ Exhaust / Engine Heat (ΔT)    │ Road Vibration / Bumps        │
+├─────────────────────────┼──────────────────────────────┼───────────────────────────────┼───────────────────────────────┤
+│ LAYER 2: Transducers    │ Wheel Hub Motor-Generators   │ Seebeck Bi₂Te₃ TEG Modules    │ Suspension Dampers / Piezo    │
+│                         │ [1.5V – 48V AC/DC]           │ [1.0V – 12V DC]               │ [AC Voltage Spikes]           │
+├─────────────────────────┴──────────────────────────────┴───────────────────────────────┴───────────────────────────────┤
+│ LAYER 3: Power Mgmt     │ Passive 1N5819 Schottky Diode-OR Bus + Multi-Input Buck/Boost MPPT (optional, vehicle-scale)      │
+│                         │ Overhead Deduction: E_net = E_gross - E_overhead (Conversion Losses & Controller Draw)            │
+├─────────────────────────┬──────────────────────────────────────────────────────────────┬───────────────────────────────┤
+│ LAYER 4: Energy Storage │ Supercapacitor Buffer / 12V Auxiliary Lithium-Iron Battery    │ Decoupled Auxiliary Bus       │
+│ & Auxiliary Loads       │ [Absorbs surges, buffers continuous baseload]                 │ [Headlights, Dash, Fan, ADAS] │
+└─────────────────────────┴──────────────────────────────────────────────────────────────┴───────────────────────────────┘
+    </div>
+
+    <h2>3.2 Power Conditioning & Combining Bus (Layer 3)</h2>
+    <p>
+      Connecting disparate generators with differing internal voltages and impedances poses a major engineering challenge. Direct parallel connection causes high-voltage sources (kinetic generators) to back-feed into lower-voltage sources (thermoelectric modules), destroying semiconductor junctions.
+    </p>
+    <p>
+      <strong>S.E.E.S. Solution:</strong> A Multi-Input Single-Output (MISO) diode-isolated architecture using ultra-low-forward-drop Schottky diodes (1N5819, $V_f \approx 0.22\text{V}$). This allows all three generators to feed a common DC bus independently without reverse conduction.
+    </p>
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- ==================== CHAPTER 4: MATHEMATICAL MODEL & DIGITAL SIMULATION ==================== -->
+  <div>
+    <h1>4. Mathematical Energy Balance & Simulation</h1>
+
+    <h2>4.1 Governing System Equations</h2>
+    <div class="equation-box">
+      <strong>Total Auxiliary Demand:</strong> &nbsp;&nbsp;&nbsp; E<sub>aux</sub> = P<sub>aux</sub> × t &nbsp;&nbsp;&nbsp;[Watt-hours]
+    </div>
+    <div class="equation-box">
+      <strong>Gross Recovered Energy:</strong> &nbsp;&nbsp;&nbsp; E<sub>gross</sub> = E<sub>kinetic</sub> + E<sub>thermal</sub> + E<sub>vibration</sub>
+    </div>
+    <div class="equation-box">
+      <strong>Net Useful Energy:</strong> &nbsp;&nbsp;&nbsp; E<sub>net</sub> = max(0, E<sub>gross</sub> − E<sub>overhead</sub>)
+    </div>
+    <div class="equation-box">
+      <strong>Auxiliary Demand Coverage:</strong> &nbsp;&nbsp;&nbsp; Coverage (%) = (E<sub>net</sub> / E<sub>aux</sub>) × 100
+    </div>
+
+    <h2>4.2 Illustrative Benchmark Calculation (Section 7 Baseline)</h2>
+    <p>
+      The harvested inputs below (150, 100 and 20 Wh) are assumed for illustration; they are not measured. The bench produces under 1 W; vehicle-scale output is future work.
+    </p>
+    <p>
+      Consider an auxiliary vehicle load of <strong>500 W</strong> operating continuously for <strong>2.0 hours</strong>:
+    </p>
+    <ul>
+      <li><strong>Total Demand:</strong> $E_{aux} = 500\text{ W} \times 2.0\text{ h} = \mathbf{1,000\text{ Wh}}\ (1.00\text{ kWh})$</li>
+      <li><strong>Harvested Inputs:</strong> Kinetic: $150\text{ Wh}$ + Thermal: $100\text{ Wh}$ + Vibration: $20\text{ Wh} \implies E_{gross} = \mathbf{270\text{ Wh}}$</li>
+      <li><strong>Overhead Losses:</strong> Power conditioning & switching losses = $\mathbf{30\text{ Wh}}$</li>
+      <li><strong>Net Useful Contribution:</strong> $E_{net} = 270 - 30 = \mathbf{240\text{ Wh}}\ (0.24\text{ kWh})$</li>
+      <li><strong>Auxiliary Coverage Ratio:</strong> $(240 / 1000) \times 100 = \mathbf{24.0\%}$</li>
+      <li><strong>Primary Battery Reduction:</strong> Demand drawn from the main battery falls from $1,000\text{ Wh}$ to $\mathbf{760\text{ Wh}}$.</li>
+    </ul>
+
+    <h2>4.3 Section 8 Mandatory Validation Assertions (All 5 Checks Passed)</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Check #</th>
+          <th>Requirement Rule</th>
+          <th>Verification Code & Condition</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Check 1</strong></td>
+          <td>Zero available recovery must produce zero gross recovery</td>
+          <td>$E_{gross}(0, 0, 0) \equiv 0.0\text{ Wh}$</td>
+          <td><strong>PASSED</strong></td>
+        </tr>
+        <tr>
+          <td><strong>Check 2</strong></td>
+          <td>Increasing positive auxiliary load must strictly increase demand</td>
+          <td>$\partial E_{aux} / \partial P_{aux} &gt; 0$ (Monotonic check)</td>
+          <td><strong>PASSED</strong></td>
+        </tr>
+        <tr>
+          <td><strong>Check 3</strong></td>
+          <td>First Law of Thermodynamics: Conversion losses cannot create energy</td>
+          <td>$E_{net} \le E_{gross}$ strictly asserted; perpetual motion rejected</td>
+          <td><strong>PASSED</strong></td>
+        </tr>
+        <tr>
+          <td><strong>Check 4</strong></td>
+          <td>Gross recovered energy must not be confused with net delivered energy</td>
+          <td>$E_{loss} &gt; 0 \implies E_{net} &lt; E_{gross}$ enforced</td>
+          <td><strong>PASSED</strong></td>
+        </tr>
+        <tr>
+          <td><strong>Check 5</strong></td>
+          <td>Storage round-trip losses and buffer capacity boundaries enforced</td>
+          <td>$\eta_{storage} = 88\%$; $E_{buffered} \le C_{cap}$ bounds active</td>
+          <td><strong>PASSED</strong></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- ==================== CHAPTER 5: SIMULATED BENCH RESULTS & PHYSICAL TEST PLAN ==================== -->
+  <div>
+    <h1>5. Simulated Bench Results (Virtual Lab) & Physical Test Plan</h1>
+
+    <h2>5.1 Calibrated Virtual Bench Implementation</h2>
+    <p>
+      To test the multi-source architecture in simulation before building physical hardware, an interactive, calibrated virtual benchtop was constructed in HTML5/JavaScript (<a href="sees_virtual_lab.html">sees_virtual_lab.html</a>). The bench simulates real-time differential equation dynamics for a 12V DC flywheel motor, a TEC1-12706 Seebeck module, a 28 Hz cantilever piezo beam, a 1.0 Farad supercapacitor, and an auxiliary DC cooling fan and LED. All values in Table 5.2 are calculated by this calibrated model. They are not physical measurements; physical measurement is Phase 4 and is still to be done. The 1.0 F supercapacitor is rated 5.5 V; the model charges it only up to its 2.40 V 'Full' setpoint.
+    </p>
+
+    <h2>5.2 4-Test Simulated Bench Results Table</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Test Run</th>
+          <th>Active Generator Channel</th>
+          <th>Physical Conditions</th>
+          <th>Bus Voltage (V)</th>
+          <th>Current (mA)</th>
+          <th>Gross Power (mW)</th>
+          <th>Buffer State (V_cap)</th>
+          <th>Auxiliary Load Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Test 1</strong></td>
+          <td>Kinetic Flywheel Only</td>
+          <td>3,500 RPM Deceleration (28 Ω coil)</td>
+          <td><strong>4.58 V</strong></td>
+          <td>163.6 mA</td>
+          <td><strong>749.3 mW</strong></td>
+          <td>1.85 V</td>
+          <td>Disconnected (Charging)</td>
+        </tr>
+        <tr>
+          <td><strong>Test 2</strong></td>
+          <td>Seebeck Thermal Only</td>
+          <td>Hot: 85°C, Cold: 25°C (ΔT = 60°C)</td>
+          <td><strong>1.70 V</strong></td>
+          <td>70.8 mA</td>
+          <td><strong>120.4 mW</strong></td>
+          <td>1.62 V</td>
+          <td>Disconnected (Steady State)</td>
+        </tr>
+        <tr>
+          <td><strong>Test 3</strong></td>
+          <td>Piezo Vibration Only</td>
+          <td>Cantilever deflection, 28 Hz decay</td>
+          <td><strong>2.28 V</strong></td>
+          <td>5.1 mA</td>
+          <td><strong>11.6 mW</strong></td>
+          <td>0.42 V</td>
+          <td>Disconnected (Transient)</td>
+        </tr>
+        <tr>
+          <td><strong>Test 4</strong></td>
+          <td><strong>All Three Combined</strong></td>
+          <td>3,500 RPM + ΔT = 60°C + 28 Hz Vibration</td>
+          <td><strong>4.58 V</strong></td>
+          <td><strong>163.6 mA</strong></td>
+          <td><strong>749.3 mW</strong></td>
+          <td><strong>2.40 V (Full)</strong></td>
+          <td><strong>ACTIVE: Fan @ 1440 RPM + LED ON</strong></td>
+        </tr>
+      </tbody>
+    </table>
+    <p style="font-size: 8.5pt; color: #64748b; margin-top: 6px;"><strong>Diode-OR note:</strong> sources do not add. In Test 4 the kinetic channel (4.58 V) holds the bus, so the Seebeck (1.70 V) and piezo diodes are reverse-biased and stand by. When the flywheel slows below about 1,400 RPM, the Seebeck channel takes over the bus at about 1.70 V. This hand-over is how the surge and baseload channels complement each other.</p>
+
+    <h2>5.3 Core Engineering Deductions</h2>
+    <ul>
+      <li><strong>Kinetic as Surge Channel:</strong> Supplies peak charging power (749.3 mW) during deceleration events.</li>
+      <li><strong>Thermal as Baseload Channel:</strong> Supplies uninterrupted background current (120.4 mW) unaffected by vehicle stopping or motion state.</li>
+      <li><strong>Vibration as Sensor Supply:</strong> Generates 11.6 mW, confirming suitability for micro-telemetry rather than high auxiliary power.</li>
+      <li><strong>Auxiliary Load Decoupling:</strong> The fan + LED load needs 108 mW (45 mA @ 2.4 V). While the kinetic channel holds the bus (flywheel above about 1,400 RPM) it delivers 749.3 mW gross (about 717 mW net), so the load runs at the full 2.4 V from harvested energy with no main-battery draw. The Seebeck channel alone gives 120.4 mW gross (about 113 mW net), which covers the load in power terms but only at 1.70 V (reduced fan speed); full 2.4 V operation needs the kinetic channel or an added boost stage.</li>
+    </ul>
+
+    <h2>5.4 Prototyping Roadmap & Engineering Milestones</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Development Phase</th>
+          <th>Engineering Focus</th>
+          <th>Technical Milestone</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Phase 1: Concept & Modeling</strong></td>
+          <td>SI derivations, mathematical formulation, impedance matching analysis</td>
+          <td>Thermodynamic energy balance model verified</td>
+        </tr>
+        <tr>
+          <td><strong>Phase 2: Digital Simulation</strong></td>
+          <td>Section 8 web simulation, cycle modeling, thermodynamic assertions</td>
+          <td>Conservation rules verified across load cycles</td>
+        </tr>
+        <tr>
+          <td><strong>Phase 3: Calibrated Virtual Lab</strong></td>
+          <td>Multi-channel diode-OR combining, supercapacitor buffering</td>
+          <td>Simulated power logs & auxiliary decoupling shown in the virtual lab</td>
+        </tr>
+        <tr>
+          <td><strong>Phase 4: Physical Benchtop Testing</strong></td>
+          <td>Hardware integration with brushless motor, Seebeck modules & buffer</td>
+          <td>Operational demonstration prototype for evaluation</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="footer-note">
+      Project S.E.E.S. — Prepared by Durgam.Noushik (Lead), Narsimha (ATL Vice-Captain), and B.Tejesh for Faculty Mentor Review.
+    </div>
+  </div>
+
+</body>
+</html>

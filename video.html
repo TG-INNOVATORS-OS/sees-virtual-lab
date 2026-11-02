@@ -1,0 +1,1527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PROJECT S.E.E.S. — Interactive Vehicle Energy Visualization</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @keyframes spin-cw { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    .spin-fast { animation: spin-cw 0.35s linear infinite; }
+    .spin-med  { animation: spin-cw 0.8s linear infinite; }
+    .spin-slow { animation: spin-cw 2s linear infinite; }
+    input[type=range] { accent-color: #38bdf8; }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+    }
+    canvas { image-rendering: auto; }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col items-center p-3 md:p-6 font-sans antialiased select-none">
+
+  <!-- Top Navigation Bar -->
+    <!-- Top Navigation & Command Bar -->
+  <nav class="max-w-7xl mx-auto mb-4 bg-slate-900/90 border border-slate-800 rounded-2xl px-5 py-3 flex flex-wrap items-center justify-between gap-4 shadow-xl backdrop-blur">
+    <div class="flex items-center gap-3">
+      <a href="index.html" class="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-500 to-emerald-400 p-0.5 shadow-lg shadow-sky-500/20 block">
+        <div class="w-full h-full bg-slate-950 rounded-[10px] flex items-center justify-center font-black text-sky-400 tracking-wider">
+          SEES
+        </div>
+      </a>
+      <div>
+        <div class="flex items-center gap-2">
+          <a href="index.html" class="text-base font-extrabold text-white tracking-wide hover:text-sky-300 transition">PROJECT S.E.E.S.</a>
+          <span class="text-[10px] px-2 py-0.5 rounded-full bg-sky-500/10 text-sky-400 border border-sky-500/30 font-mono">v2.0 PRO</span>
+        </div>
+        <p class="text-xs text-slate-400 font-medium">Self-Sustaining Energy System</p>
+      </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="flex items-center flex-wrap gap-2 text-xs">
+      <a href="index.html" class="px-3.5 py-1.5 font-semibold rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white transition">
+        Virtual Lab
+      </a>
+      <a href="sees_virtual_lab.html" class="px-3.5 py-1.5 font-semibold rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white transition">
+        Digital Twin
+      </a>
+      <a href="master_project_document.html" class="px-3.5 py-1.5 font-semibold rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white transition">
+        Master Dossier
+      </a>
+      <a href="sees_architecture_specification.html" class="px-3.5 py-1.5 font-semibold rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white transition">
+        Architecture Spec
+      </a>
+      <a href="sees_rc_car_prototype_guide.html" class="px-3.5 py-1.5 font-semibold rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white transition">
+        RC Prototype
+      </a>
+      <a href="video.html" class="px-3.5 py-1.5 font-semibold rounded-xl bg-emerald-400 text-slate-950 ring-2 ring-emerald-300 shadow-md transition flex items-center gap-1.5">
+        <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+        Video Showcase
+      </a>
+    </div>
+  </nav>
+
+  <!-- Main Visualization Container -->
+  <div class="w-full max-w-6xl space-y-4">
+
+    <!-- Vehicle Animation Canvas -->
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden">
+      <!-- Header Bar -->
+      <div class="bg-slate-950/90 px-5 py-3 border-b border-slate-800 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-3 h-3 rounded-full bg-emerald-400" id="simStatusDot"></div>
+          <span class="text-xs font-bold text-white uppercase tracking-wider">3D Elevated Sunrise Vehicle Energy Visualization</span>
+          <span class="text-[11px] font-mono text-slate-400" id="simFPS">0 FPS</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-sky-500/20 text-sky-400 border border-sky-500/30" id="vehicleStateBadge">IDLE</span>
+          <span class="px-2.5 py-0.5 rounded-full text-[11px] font-mono bg-emerald-500/20 text-emerald-300 border border-emerald-500/30" id="activeRigBadge">Kinetic DC Flywheel</span>
+        </div>
+      </div>
+
+      <!-- Canvas Scene (Aspect ratio 16/7.5) -->
+      <div class="relative w-full" style="aspect-ratio: 16/7.5;">
+        <canvas id="carCanvas" class="w-full h-full block"></canvas>
+        
+        <!-- Overlay: Speed HUD -->
+        <div class="absolute top-3 left-4 bg-slate-950/85 border border-slate-800 rounded-xl px-3.5 py-2 backdrop-blur-md shadow-lg">
+          <div class="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Vehicle Speed</div>
+          <div class="text-xl font-black font-mono text-sky-400" id="hudSpeed">0 km/h</div>
+          <div class="text-[9px] font-mono text-amber-400">Headlights: Active (Beam ON)</div>
+        </div>
+        
+        <!-- Overlay: Active Rig Harvester Output -->
+        <div class="absolute top-3 right-4 bg-slate-950/85 border border-slate-800 rounded-xl px-3.5 py-2 backdrop-blur-md text-right shadow-lg">
+          <div class="text-[10px] text-slate-400 uppercase font-bold tracking-wider" id="hudRigLabel">Kinetic Output</div>
+          <div class="text-xl font-black font-mono" id="hudRigVoltage" style="color: #38bdf8;">0.00 V</div>
+          <div class="text-[10px] font-mono text-slate-400" id="hudRigCurrent">0.0 mA</div>
+        </div>
+
+        <!-- Overlay: Internal Subsystems Status (X-Ray Overlay) -->
+        <div class="absolute bottom-3 left-4 bg-slate-950/90 border border-slate-800/80 rounded-xl px-3.5 py-2 backdrop-blur-md shadow-lg flex items-center gap-3">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+            <div>
+              <span class="text-[9px] text-slate-400 uppercase font-bold block">Diode-OR Bus</span>
+              <span class="text-base font-bold font-mono text-emerald-400" id="hudBusVolt">0.00 V</span>
+            </div>
+          </div>
+          <div class="w-px h-6 bg-slate-800"></div>
+          <div>
+            <span class="text-[9px] text-slate-400 uppercase font-bold block">X-Ray Subsystems</span>
+            <span class="text-[10px] font-mono text-slate-300">🔥 Engine | ⚡ Motor | 〰 Springs Active</span>
+          </div>
+        </div>
+
+        <!-- Overlay: Harvested Power & Road Bumps Notice -->
+        <div class="absolute bottom-3 right-4 bg-slate-950/90 border border-slate-800/80 rounded-xl px-3.5 py-2 backdrop-blur-md text-right shadow-lg">
+          <div class="text-[9px] text-slate-400 uppercase font-bold tracking-wider">Harvested Power</div>
+          <div class="text-base font-bold font-mono text-amber-300" id="hudPower">0.0 mW</div>
+          <div class="text-[9px] font-mono text-purple-300" id="hudRoadBumpNotice">Road: Smooth Asphalt</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Controls Row -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+
+      <!-- Vehicle Operating State Controls (4 cols) -->
+      <div class="lg:col-span-4 bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg">
+        <h3 class="text-xs font-bold text-white uppercase tracking-wider mb-3 flex items-center gap-2">
+          <span class="w-2.5 h-2.5 rounded-full bg-sky-400"></span>
+          Vehicle Operating State
+        </h3>
+        <div class="grid grid-cols-2 gap-2 mb-3" id="stateButtons">
+          <button onclick="setVehicleState('idle')" class="state-btn px-3 py-2 text-xs font-semibold rounded-lg bg-sky-600 text-white shadow transition" data-state="idle">⏸ Idle / Stopped</button>
+          <button onclick="setVehicleState('accelerating')" class="state-btn px-3 py-2 text-xs font-medium rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700 transition" data-state="accelerating">🚀 Accelerate</button>
+          <button onclick="setVehicleState('cruising')" class="state-btn px-3 py-2 text-xs font-medium rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700 transition" data-state="cruising">🛞 Cruise</button>
+          <button onclick="setVehicleState('decelerating')" class="state-btn px-3 py-2 text-xs font-medium rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700 transition" data-state="decelerating">🛑 Decelerate</button>
+        </div>
+        <div class="space-y-2 text-xs">
+          <div>
+            <div class="flex justify-between text-slate-400 mb-1">
+              <span>Target Speed:</span>
+              <span class="font-mono text-sky-400" id="valTargetSpeed">0 km/h</span>
+            </div>
+            <input type="range" id="sliderSpeed" min="0" max="120" step="5" value="0" class="w-full h-1.5 bg-slate-800 rounded cursor-pointer">
+          </div>
+          <div class="flex gap-2">
+            <button onclick="pauseSim()" class="flex-1 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium rounded-lg border border-slate-700 transition text-xs" id="btnPause">⏸ Pause</button>
+            <button onclick="resetSim()" class="flex-1 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium rounded-lg border border-slate-700 transition text-xs">↻ Reset</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Rig Selector & Parameters (4 cols) -->
+      <div class="lg:col-span-4 bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg">
+        <h3 class="text-xs font-bold text-white uppercase tracking-wider mb-3 flex items-center gap-2">
+          <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+          Energy Rig Selection
+        </h3>
+        <div class="flex gap-1.5 mb-3" id="rigTabs">
+          <button onclick="selectRig('kinetic')" class="rig-btn flex-1 px-2 py-1.5 text-[11px] font-semibold rounded-lg bg-sky-600 text-white shadow transition" data-rig="kinetic">Kinetic DC Flywheel</button>
+          <button onclick="selectRig('thermal')" class="rig-btn flex-1 px-2 py-1.5 text-[11px] font-medium rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700 transition" data-rig="thermal">Seebeck Thermal</button>
+          <button onclick="selectRig('piezo')" class="rig-btn flex-1 px-2 py-1.5 text-[11px] font-medium rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700 transition" data-rig="piezo">Piezo Vibration</button>
+        </div>
+
+        <!-- Kinetic Controls -->
+        <div id="ctrlKinetic" class="space-y-2 text-xs">
+          <div>
+            <div class="flex justify-between text-slate-400 mb-1">
+              <span>Flywheel Inertia (I):</span>
+              <span class="font-mono text-sky-400" id="valInertia">0.005 kg·m²</span>
+            </div>
+            <input type="range" id="sliderInertia" min="0.001" max="0.02" step="0.001" value="0.005" class="w-full h-1.5 bg-slate-800 rounded cursor-pointer">
+          </div>
+          <div>
+            <div class="flex justify-between text-slate-400 mb-1">
+              <span>Generator Coupling (k):</span>
+              <span class="font-mono text-sky-400" id="valCoupling">0.012 V·s/rad</span>
+            </div>
+            <input type="range" id="sliderCoupling" min="0.005" max="0.025" step="0.001" value="0.012" class="w-full h-1.5 bg-slate-800 rounded cursor-pointer">
+          </div>
+          <div class="p-2 bg-slate-950 rounded-lg border border-slate-800 font-mono text-[11px]">
+            <span class="text-slate-400">Rear Generator Motor spins with axle deceleration</span>
+            <span class="text-slate-500 block">[E = ½Iω² | Back-EMF V = k·ω]</span>
+          </div>
+        </div>
+
+        <!-- Thermal Controls -->
+        <div id="ctrlThermal" class="space-y-2 text-xs hidden">
+          <div>
+            <div class="flex justify-between text-slate-400 mb-1">
+              <span>Hot Side (Engine & Exhaust Block):</span>
+              <span class="font-mono text-rose-400" id="valHotT">85°C</span>
+            </div>
+            <input type="range" id="sliderHotT" min="25" max="120" step="1" value="85" class="w-full h-1.5 bg-slate-800 rounded cursor-pointer">
+          </div>
+          <div>
+            <div class="flex justify-between text-slate-400 mb-1">
+              <span>Cold Side (Radiator / Ambient Air):</span>
+              <span class="font-mono text-blue-400" id="valColdT">25°C</span>
+            </div>
+            <input type="range" id="sliderColdT" min="0" max="45" step="1" value="25" class="w-full h-1.5 bg-slate-800 rounded cursor-pointer">
+          </div>
+          <div>
+            <div class="flex justify-between text-slate-400 mb-1">
+              <span>Seebeck Coefficient (S):</span>
+              <span class="font-mono text-amber-400" id="valSeebeck">0.032 V/K</span>
+            </div>
+            <input type="range" id="sliderSeebeck" min="0.015" max="0.055" step="0.001" value="0.032" class="w-full h-1.5 bg-slate-800 rounded cursor-pointer">
+          </div>
+          <div class="p-2 bg-slate-950 rounded-lg border border-slate-800 font-mono text-[11px]">
+            <span class="text-slate-400">TEC1 Module harvests engine thermal gradient</span>
+            <span class="text-slate-500 block">[V_oc ≈ S × ΔT | Baseload Power]</span>
+          </div>
+        </div>
+
+        <!-- Piezo Controls -->
+        <div id="ctrlPiezo" class="space-y-2 text-xs hidden">
+          <div>
+            <div class="flex justify-between text-slate-400 mb-1">
+              <span>Road Bump & Vibration Amplitude:</span>
+              <span class="font-mono text-purple-400" id="valPiezoAmp">1.5 mm</span>
+            </div>
+            <input type="range" id="sliderPiezoAmp" min="0.1" max="4.0" step="0.1" value="1.5" class="w-full h-1.5 bg-slate-800 rounded cursor-pointer">
+          </div>
+          <div>
+            <div class="flex justify-between text-slate-400 mb-1">
+              <span>Suspension Frequency:</span>
+              <span class="font-mono text-purple-400" id="valPiezoFreq">28 Hz</span>
+            </div>
+            <input type="range" id="sliderPiezoFreq" min="5" max="80" step="1" value="28" class="w-full h-1.5 bg-slate-800 rounded cursor-pointer">
+          </div>
+          <div class="p-2 bg-slate-950 rounded-lg border border-purple-900/50 bg-purple-950/20 text-purple-300 font-mono text-[11px]">
+            <span>⚡ Increasing vibration adds visible physical road bumps and excites spring shock absorbers in real time!</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Real-time Metrics (4 cols) -->
+      <div class="lg:col-span-4 bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg">
+        <h3 class="text-xs font-bold text-white uppercase tracking-wider mb-3 flex items-center gap-2">
+          <span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span>
+          Live Harvester Readings
+        </h3>
+        <div class="grid grid-cols-2 gap-2 mb-3">
+          <div class="bg-slate-950 rounded-xl border border-slate-800 p-2.5">
+            <div class="text-[10px] text-slate-500 uppercase font-bold">Kinetic</div>
+            <div class="text-sm font-bold font-mono text-sky-400" id="mKinV">0.00 V</div>
+            <div class="text-[10px] font-mono text-slate-500" id="mKinI">0.0 mA</div>
+          </div>
+          <div class="bg-slate-950 rounded-xl border border-slate-800 p-2.5">
+            <div class="text-[10px] text-slate-500 uppercase font-bold">Thermal</div>
+            <div class="text-sm font-bold font-mono text-amber-400" id="mThermV">0.00 V</div>
+            <div class="text-[10px] font-mono text-slate-500" id="mThermI">0.0 mA</div>
+          </div>
+          <div class="bg-slate-950 rounded-xl border border-slate-800 p-2.5">
+            <div class="text-[10px] text-slate-500 uppercase font-bold">Piezo</div>
+            <div class="text-sm font-bold font-mono text-purple-400" id="mPiezoV">0.00 V</div>
+            <div class="text-[10px] font-mono text-slate-500" id="mPiezoI">0.0 mA</div>
+          </div>
+          <div class="bg-slate-950 rounded-xl border border-slate-800 p-2.5">
+            <div class="text-[10px] text-slate-500 uppercase font-bold">Bus Voltage</div>
+            <div class="text-sm font-bold font-mono text-emerald-400" id="mBusV">0.00 V</div>
+            <div class="text-[10px] font-mono text-slate-500" id="mBusPow">0.0 mW</div>
+          </div>
+        </div>
+        <div class="bg-slate-950 rounded-xl border border-slate-800 p-2.5">
+          <div class="flex justify-between text-[10px] text-slate-500 mb-1">
+            <span class="uppercase font-bold">Supercapacitor Buffer</span>
+            <span class="font-mono text-emerald-400" id="mCapV">0.00 V / 5.5 V max</span>
+          </div>
+          <div class="w-full h-3 bg-slate-800 rounded-full overflow-hidden">
+            <div id="mCapBar" class="bg-gradient-to-r from-sky-500 via-emerald-400 to-amber-400 h-full rounded-full transition-all duration-150" style="width: 0%;"></div>
+          </div>
+        </div>
+        <div class="mt-2 p-2 bg-slate-950/60 rounded-lg border border-slate-800 text-[10px] text-slate-500">
+          <span class="text-amber-400 font-semibold">⚠ Note:</span> Dynamic 3D perspective with realistic sunrise lighting, dual shadows, and live internal energy harvesters.
+        </div>
+      </div>
+    </div>
+
+    <!-- Voltage Waveform Oscilloscope -->
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg">
+      <div class="flex justify-between items-center mb-2">
+        <span class="text-xs font-bold text-slate-300 flex items-center gap-2">
+          <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+          Voltage Waveform Oscilloscope — Active Rig Channel
+        </span>
+        <span class="text-[10px] font-mono text-emerald-400">Simulated 20 Hz Sampling</span>
+      </div>
+      <div class="bg-slate-950 rounded-xl p-2 border border-slate-800">
+        <canvas id="waveCanvas" class="w-full block" style="height: 140px;"></canvas>
+      </div>
+      <div class="flex flex-wrap justify-between text-[10px] text-slate-500 mt-1.5 gap-2">
+        <span class="flex items-center gap-1"><span class="w-3 h-0.5 bg-sky-400 inline-block rounded"></span> Kinetic V (blue)</span>
+        <span class="flex items-center gap-1"><span class="w-3 h-0.5 bg-amber-400 inline-block rounded"></span> Thermal V (amber)</span>
+        <span class="flex items-center gap-1"><span class="w-3 h-0.5 bg-purple-400 inline-block rounded"></span> Piezo V (purple)</span>
+        <span class="flex items-center gap-1"><span class="w-3 h-0.5 bg-emerald-400 inline-block rounded"></span> Bus V (green)</span>
+        <span>Time Window: 6 seconds</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Footer -->
+  <footer class="w-full max-w-6xl mt-6 text-center text-xs text-slate-500 pb-8">
+    Project S.E.E.S. • Invented by Durgam.Noushik, Narasimha (ATL Vice-Captain), and B.Tejesh • Form 2 Patent Priority Ready
+  </footer>
+
+  <!-- ============================================================ -->
+  <!-- HIGH-GRAPHICS 3D SIMULATION ENGINE -->
+  <!-- ============================================================ -->
+  <script>
+  (function() {
+    'use strict';
+
+    // ── Polyfill: CanvasRenderingContext2D.roundRect ──
+    if (!CanvasRenderingContext2D.prototype.roundRect) {
+      CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, radii) {
+        const r = Array.isArray(radii) ? radii : [radii || 0];
+        const tl = r[0] || 0, tr = r[1] || tl, br = r[2] || tl, bl = r[3] || tr;
+        this.moveTo(x + tl, y);
+        this.lineTo(x + w - tr, y);
+        this.quadraticCurveTo(x + w, y, x + w, y + tr);
+        this.lineTo(x + w, y + h - br);
+        this.quadraticCurveTo(x + w, y + h, x + w - br, y + h);
+        this.lineTo(x + bl, y + h);
+        this.quadraticCurveTo(x, y + h, x, y + h - bl);
+        this.lineTo(x, y + tl);
+        this.quadraticCurveTo(x, y, x + tl, y);
+        this.closePath();
+        return this;
+      };
+    }
+
+    // ── Canvas Setup ──
+    const carCanvas = document.getElementById('carCanvas');
+    const carCtx = carCanvas.getContext('2d');
+    const waveCanvas = document.getElementById('waveCanvas');
+    const waveCtx = waveCanvas.getContext('2d');
+
+    function resizeCanvases() {
+      const cRect = carCanvas.parentElement.getBoundingClientRect();
+      carCanvas.width = cRect.width * window.devicePixelRatio;
+      carCanvas.height = cRect.height * window.devicePixelRatio;
+      carCtx.setTransform(window.devicePixelRatio, 0, 0, window.devicePixelRatio, 0, 0);
+
+      const wRect = waveCanvas.parentElement.getBoundingClientRect();
+      waveCanvas.width = wRect.width * window.devicePixelRatio;
+      waveCanvas.height = 140 * window.devicePixelRatio;
+      waveCtx.setTransform(window.devicePixelRatio, 0, 0, window.devicePixelRatio, 0, 0);
+    }
+    window.addEventListener('resize', resizeCanvases);
+    resizeCanvases();
+
+    // ── Physics State ──
+    const SIM = {
+      paused: false,
+      vehicleState: 'idle',
+      targetSpeed: 0,
+      currentSpeed: 0,
+      wheelAngle: 0,
+      roadOffset: 0,
+      time: 0,
+
+      // Active rig
+      activeRig: 'kinetic',
+
+      // Kinetic rig parameters
+      flywheelOmega: 0,
+      kInertia: 0.005,
+      kCoupling: 0.012,
+
+      // Thermal rig parameters
+      tHot: 85,
+      tCold: 25,
+      seebeckCoeff: 0.032,
+
+      // Piezo rig parameters
+      piezoAmp: 1.5,
+      piezoFreq: 28,
+
+      // Suspension / Bumps
+      suspensionBounce: 0,
+      shockCompression: 0,
+
+      // Computed outputs
+      vKinetic: 0, iKinetic: 0,
+      vThermal: 0, iThermal: 0,
+      vPiezo: 0,   iPiezo: 0,
+      vBus: 0, totalCurrentMA: 0, totalPowerMW: 0,
+
+      // Supercapacitor buffer
+      capVoltage: 0.0,
+      capFarads: 1.0,
+      capMaxV: 5.5,
+
+      // Waveform history
+      waveHistory: [],
+      maxWavePoints: 120,
+
+      // Frame counter
+      frameCount: 0,
+      lastFPSTime: 0,
+      displayFPS: 0,
+    };
+
+    const VF_DIODE = 0.30;
+
+    // ── DOM References ──
+    const el = {
+      vehicleStateBadge: document.getElementById('vehicleStateBadge'),
+      activeRigBadge: document.getElementById('activeRigBadge'),
+      simFPS: document.getElementById('simFPS'),
+      simStatusDot: document.getElementById('simStatusDot'),
+      hudSpeed: document.getElementById('hudSpeed'),
+      hudRigLabel: document.getElementById('hudRigLabel'),
+      hudRigVoltage: document.getElementById('hudRigVoltage'),
+      hudRigCurrent: document.getElementById('hudRigCurrent'),
+      hudBusVolt: document.getElementById('hudBusVolt'),
+      hudPower: document.getElementById('hudPower'),
+      hudRoadBumpNotice: document.getElementById('hudRoadBumpNotice'),
+      mKinV: document.getElementById('mKinV'),
+      mKinI: document.getElementById('mKinI'),
+      mThermV: document.getElementById('mThermV'),
+      mThermI: document.getElementById('mThermI'),
+      mPiezoV: document.getElementById('mPiezoV'),
+      mPiezoI: document.getElementById('mPiezoI'),
+      mBusV: document.getElementById('mBusV'),
+      mBusPow: document.getElementById('mBusPow'),
+      mCapV: document.getElementById('mCapV'),
+      mCapBar: document.getElementById('mCapBar'),
+      valTargetSpeed: document.getElementById('valTargetSpeed'),
+      sliderSpeed: document.getElementById('sliderSpeed'),
+      btnPause: document.getElementById('btnPause'),
+      sliderInertia: document.getElementById('sliderInertia'),
+      valInertia: document.getElementById('valInertia'),
+      sliderCoupling: document.getElementById('sliderCoupling'),
+      valCoupling: document.getElementById('valCoupling'),
+      sliderHotT: document.getElementById('sliderHotT'),
+      valHotT: document.getElementById('valHotT'),
+      sliderColdT: document.getElementById('sliderColdT'),
+      valColdT: document.getElementById('valColdT'),
+      sliderSeebeck: document.getElementById('sliderSeebeck'),
+      valSeebeck: document.getElementById('valSeebeck'),
+      sliderPiezoAmp: document.getElementById('sliderPiezoAmp'),
+      valPiezoAmp: document.getElementById('valPiezoAmp'),
+      sliderPiezoFreq: document.getElementById('sliderPiezoFreq'),
+      valPiezoFreq: document.getElementById('valPiezoFreq'),
+      ctrlKinetic: document.getElementById('ctrlKinetic'),
+      ctrlThermal: document.getElementById('ctrlThermal'),
+      ctrlPiezo: document.getElementById('ctrlPiezo'),
+    };
+
+    // ── Vehicle State Management ──
+    window.setVehicleState = function(state) {
+      SIM.vehicleState = state;
+      switch (state) {
+        case 'idle':
+          SIM.targetSpeed = 0;
+          el.sliderSpeed.value = 0;
+          break;
+        case 'accelerating':
+          if (SIM.targetSpeed < 30) { SIM.targetSpeed = 80; el.sliderSpeed.value = 80; }
+          break;
+        case 'cruising':
+          SIM.targetSpeed = SIM.currentSpeed > 5 ? SIM.currentSpeed : 60;
+          el.sliderSpeed.value = Math.round(SIM.targetSpeed);
+          break;
+        case 'decelerating':
+          SIM.targetSpeed = 0;
+          el.sliderSpeed.value = 0;
+          break;
+      }
+      updateStateButtonStyles();
+    };
+
+    function updateStateButtonStyles() {
+      document.querySelectorAll('.state-btn').forEach(btn => {
+        const s = btn.dataset.state;
+        if (s === SIM.vehicleState) {
+          btn.className = 'state-btn px-3 py-2 text-xs font-semibold rounded-lg bg-sky-600 text-white shadow transition';
+        } else {
+          btn.className = 'state-btn px-3 py-2 text-xs font-medium rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700 transition';
+        }
+      });
+      const labels = { idle: 'IDLE', accelerating: 'ACCELERATING', cruising: 'CRUISING', decelerating: 'DECELERATING' };
+      el.vehicleStateBadge.textContent = labels[SIM.vehicleState] || 'IDLE';
+    }
+
+    // ── Rig Selection ──
+    window.selectRig = function(rig) {
+      SIM.activeRig = rig;
+      el.ctrlKinetic.classList.toggle('hidden', rig !== 'kinetic');
+      el.ctrlThermal.classList.toggle('hidden', rig !== 'thermal');
+      el.ctrlPiezo.classList.toggle('hidden', rig !== 'piezo');
+
+      document.querySelectorAll('.rig-btn').forEach(btn => {
+        const r = btn.dataset.rig;
+        const colors = { kinetic: 'bg-sky-600', thermal: 'bg-amber-600', piezo: 'bg-purple-600' };
+        if (r === rig) {
+          btn.className = `rig-btn flex-1 px-2 py-1.5 text-[11px] font-semibold rounded-lg ${colors[r]} text-white shadow transition`;
+        } else {
+          btn.className = 'rig-btn flex-1 px-2 py-1.5 text-[11px] font-medium rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700 transition';
+        }
+      });
+
+      const rigNames = { kinetic: 'Kinetic DC Flywheel', thermal: 'Seebeck Thermal (TEC1)', piezo: 'Piezo Vibration' };
+      el.activeRigBadge.textContent = rigNames[rig];
+    };
+
+    // ── Pause / Reset ──
+    window.pauseSim = function() {
+      SIM.paused = !SIM.paused;
+      el.btnPause.textContent = SIM.paused ? '▶ Resume' : '⏸ Pause';
+      el.simStatusDot.className = SIM.paused
+        ? 'w-3 h-3 rounded-full bg-amber-400'
+        : 'w-3 h-3 rounded-full bg-emerald-400';
+    };
+
+    window.resetSim = function() {
+      SIM.currentSpeed = 0;
+      SIM.targetSpeed = 0;
+      SIM.flywheelOmega = 0;
+      SIM.wheelAngle = 0;
+      SIM.roadOffset = 0;
+      SIM.capVoltage = 0;
+      SIM.time = 0;
+      SIM.suspensionBounce = 0;
+      SIM.shockCompression = 0;
+      SIM.waveHistory = [];
+      SIM.vehicleState = 'idle';
+      SIM.paused = false;
+      el.sliderSpeed.value = 0;
+      el.btnPause.textContent = '⏸ Pause';
+      el.simStatusDot.className = 'w-3 h-3 rounded-full bg-emerald-400';
+      updateStateButtonStyles();
+    };
+
+    // ── Slider Event Listeners ──
+    el.sliderSpeed.addEventListener('input', e => {
+      SIM.targetSpeed = parseFloat(e.target.value);
+      el.valTargetSpeed.textContent = `${Math.round(SIM.targetSpeed)} km/h`;
+      if (SIM.targetSpeed > SIM.currentSpeed + 5) SIM.vehicleState = 'accelerating';
+      else if (SIM.targetSpeed < SIM.currentSpeed - 5) SIM.vehicleState = 'decelerating';
+      else if (SIM.targetSpeed > 2) SIM.vehicleState = 'cruising';
+      else SIM.vehicleState = 'idle';
+      updateStateButtonStyles();
+    });
+
+    el.sliderInertia.addEventListener('input', e => {
+      SIM.kInertia = parseFloat(e.target.value);
+      el.valInertia.textContent = `${SIM.kInertia.toFixed(3)} kg·m²`;
+    });
+    el.sliderCoupling.addEventListener('input', e => {
+      SIM.kCoupling = parseFloat(e.target.value);
+      el.valCoupling.textContent = `${SIM.kCoupling.toFixed(3)} V·s/rad`;
+    });
+    el.sliderHotT.addEventListener('input', e => {
+      SIM.tHot = parseFloat(e.target.value);
+      el.valHotT.textContent = `${SIM.tHot}°C`;
+    });
+    el.sliderColdT.addEventListener('input', e => {
+      SIM.tCold = parseFloat(e.target.value);
+      el.valColdT.textContent = `${SIM.tCold}°C`;
+    });
+    el.sliderSeebeck.addEventListener('input', e => {
+      SIM.seebeckCoeff = parseFloat(e.target.value);
+      el.valSeebeck.textContent = `${SIM.seebeckCoeff.toFixed(3)} V/K`;
+    });
+    el.sliderPiezoAmp.addEventListener('input', e => {
+      SIM.piezoAmp = parseFloat(e.target.value);
+      el.valPiezoAmp.textContent = `${SIM.piezoAmp.toFixed(1)} mm`;
+    });
+    el.sliderPiezoFreq.addEventListener('input', e => {
+      SIM.piezoFreq = parseFloat(e.target.value);
+      el.valPiezoFreq.textContent = `${SIM.piezoFreq} Hz`;
+    });
+
+    // ── Physics Simulation Step (20Hz) ──
+    function physicsStep(dt) {
+      if (SIM.paused) return;
+
+      SIM.time += dt;
+
+      // 1. Vehicle speed interpolation
+      const speedDiff = SIM.targetSpeed - SIM.currentSpeed;
+      const accelRate = SIM.vehicleState === 'decelerating' ? 25 : 15;
+      if (Math.abs(speedDiff) > 0.5) {
+        SIM.currentSpeed += Math.sign(speedDiff) * Math.min(accelRate * dt, Math.abs(speedDiff));
+      } else {
+        SIM.currentSpeed = SIM.targetSpeed;
+      }
+      SIM.currentSpeed = Math.max(0, SIM.currentSpeed);
+
+      if (SIM.currentSpeed < 0.5 && SIM.targetSpeed < 0.5 && SIM.vehicleState !== 'idle') {
+        SIM.vehicleState = 'idle';
+        updateStateButtonStyles();
+      } else if (Math.abs(speedDiff) < 2 && SIM.currentSpeed > 2 && SIM.vehicleState === 'accelerating') {
+        SIM.vehicleState = 'cruising';
+        updateStateButtonStyles();
+      }
+
+      // Wheel animation
+      const speedMs = SIM.currentSpeed / 3.6;
+      const wheelRadius = 0.35;
+      SIM.wheelAngle += (speedMs / wheelRadius) * dt;
+      SIM.roadOffset += speedMs * dt * 18;
+
+      // 2. Road Bumps & Suspension Dynamics
+      // When piezo amplitude > 0.5mm, road bumps appear and cause real chassis displacement!
+      const bumpAmplitude = SIM.piezoAmp * 3.5;
+      const roadSpeedFactor = SIM.currentSpeed > 1 ? (SIM.currentSpeed / 50) : 0;
+      const bumpCycle = Math.sin(SIM.time * (SIM.piezoFreq * 0.4) * (roadSpeedFactor > 0 ? roadSpeedFactor : 1));
+      SIM.suspensionBounce = (bumpCycle * bumpAmplitude * (SIM.currentSpeed > 0 ? 1 : 0.15));
+      SIM.shockCompression = Math.max(-8, Math.min(8, SIM.suspensionBounce));
+      SIM.shockCompressionFront = SIM.shockCompression;
+      SIM.shockCompressionRear  = SIM.shockCompression;
+
+      // 3. Kinetic Flywheel / Motor Output
+      if (SIM.vehicleState === 'decelerating' && SIM.currentSpeed > 1) {
+        const brakingIntensity = Math.abs(SIM.currentSpeed / 120);
+        SIM.flywheelOmega = Math.min(420, SIM.flywheelOmega + brakingIntensity * 850 * dt);
+      } else if (SIM.vehicleState === 'cruising') {
+        SIM.flywheelOmega = Math.max(0, (SIM.currentSpeed / 120) * 35);
+      } else {
+        SIM.flywheelOmega *= Math.pow(0.92, dt * 10);
+        if (SIM.flywheelOmega < 0.5) SIM.flywheelOmega = 0;
+      }
+
+      const vKinRaw = SIM.kCoupling * SIM.flywheelOmega;
+      SIM.vKinetic = Math.max(0, vKinRaw - VF_DIODE);
+      SIM.iKinetic = SIM.vKinetic > 0 ? (SIM.vKinetic / 28) * 1000 : 0;
+
+      // 4. Thermal (Seebeck) Output
+      const effectiveHot = SIM.tHot + (SIM.currentSpeed / 120) * 15;
+      const deltaT = Math.max(0, effectiveHot - SIM.tCold);
+      const vThermRaw = SIM.seebeckCoeff * deltaT;
+      SIM.vThermal = Math.max(0, vThermRaw - VF_DIODE);
+      SIM.iThermal = SIM.vThermal > 0 ? (SIM.vThermal / 24) * 1000 : 0;
+
+      // 5. Piezo Output from Bumps & Suspension
+      const vibScale = SIM.currentSpeed > 2 ? 0.4 + 0.6 * (SIM.currentSpeed / 100) : 0.08;
+      const vPiezoRaw = SIM.piezoAmp * SIM.piezoFreq * 0.024 * vibScale;
+      const rectifiedAC = Math.abs(Math.sin(2 * Math.PI * SIM.piezoFreq * SIM.time));
+      const vPiezoInst = vPiezoRaw * (0.55 + 0.45 * rectifiedAC);
+      SIM.vPiezo = Math.max(0, vPiezoInst - VF_DIODE);
+      SIM.iPiezo = SIM.vPiezo > 0 ? (SIM.vPiezo / 420) * 1000 : 0;
+
+      // 6. Diode-OR Combining Bus
+      SIM.vBus = Math.max(SIM.vKinetic, SIM.vThermal, SIM.vPiezo);
+      SIM.totalCurrentMA = 0;
+      if (SIM.vKinetic >= SIM.vBus - 0.05) SIM.totalCurrentMA += SIM.iKinetic;
+      if (SIM.vThermal >= SIM.vBus - 0.05) SIM.totalCurrentMA += SIM.iThermal;
+      if (SIM.vPiezo >= SIM.vBus - 0.05) SIM.totalCurrentMA += SIM.iPiezo;
+      SIM.totalPowerMW = SIM.vBus * SIM.totalCurrentMA;
+
+      // 7. Supercapacitor
+      let iChargeA = 0;
+      if (SIM.vBus > SIM.capVoltage) iChargeA = SIM.totalCurrentMA / 1000;
+      const dV = (iChargeA * dt) / SIM.capFarads;
+      SIM.capVoltage = Math.max(0, Math.min(SIM.capMaxV, SIM.capVoltage + dV));
+
+      // Waveform History
+      SIM.waveHistory.push({
+        t: SIM.time,
+        vKin: SIM.vKinetic,
+        vTherm: SIM.vThermal,
+        vPiezo: SIM.vPiezo,
+        vBus: SIM.vBus,
+      });
+      if (SIM.waveHistory.length > SIM.maxWavePoints) SIM.waveHistory.shift();
+    }
+
+    // ── Helper: Draw Spring Coil (Shock Absorbers) ──
+    function drawCoilSpring(ctx, x, yTop, yBottom, coilRadius, turns, glowColor) {
+      ctx.save();
+      ctx.strokeStyle = glowColor;
+      ctx.lineWidth = 3.5;
+      ctx.shadowColor = glowColor;
+      ctx.shadowBlur = 8;
+      ctx.beginPath();
+      const h = yBottom - yTop;
+      const step = h / turns;
+      ctx.moveTo(x, yTop);
+      for (let i = 0; i <= turns; i++) {
+        const curY = yTop + i * step;
+        const xOffset = (i % 2 === 0 ? 1 : -1) * coilRadius;
+        ctx.lineTo(x + xOffset, curY);
+      }
+      ctx.lineTo(x, yBottom);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // ── High Graphics Canvas Rendering ──
+    function drawCarScene(ctx, W, H) {
+      ctx.setTransform(window.devicePixelRatio, 0, 0, window.devicePixelRatio, 0, 0);
+      ctx.clearRect(0, 0, W, H);
+
+      // --- 1. SUNRISE SKY WITH VISIBLE STARS ---
+      const horizonY = H * 0.54;
+
+      // Sunrise atmospheric gradient: deep navy top -> royal violet -> vivid morning coral -> radiant amber
+      const skyGrad = ctx.createLinearGradient(0, 0, 0, horizonY);
+      skyGrad.addColorStop(0.0, '#0a0d1f'); // Deep night cosmos
+      skyGrad.addColorStop(0.3, '#1c1b3d'); // Twilight indigo
+      skyGrad.addColorStop(0.6, '#4a2545'); // Crimson violet
+      skyGrad.addColorStop(0.85, '#a14238'); // Morning amber coral
+      skyGrad.addColorStop(1.0, '#f97316'); // Glowing sunrise orange
+      ctx.fillStyle = skyGrad;
+      ctx.fillRect(0, 0, W, horizonY);
+
+      // Morning Stars visible in upper sky (Requirement #3)
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+      for (let i = 0; i < 45; i++) {
+        const sx = ((i * 127.3 + SIM.time * 0.15) % W);
+        const sy = (i * 37.1) % (horizonY * 0.55);
+        const starSize = 1.0 + (i % 3) * 0.5;
+        const twinkle = 0.4 + 0.6 * Math.sin(SIM.time * 2 + i);
+        ctx.globalAlpha = twinkle;
+        ctx.fillRect(sx, sy, starSize, starSize);
+      }
+      ctx.globalAlpha = 1.0;
+
+      // --- 1B. CINEMATIC SUN BEHIND CAR ON LEFT OF EXISTING MOUNTAIN ---
+      const sunX = W * 0.20; // Positioned behind the car on the LEFT side of the mountain
+      const sunY = horizonY - 28;
+
+      // Soft ambient dawn sunlight haze along horizon
+      const horizonSunHaze = ctx.createLinearGradient(0, horizonY - 45, 0, horizonY + 12);
+      horizonSunHaze.addColorStop(0.0, 'rgba(251, 146, 60, 0.0)');
+      horizonSunHaze.addColorStop(0.6, 'rgba(251, 146, 60, 0.28)');
+      horizonSunHaze.addColorStop(0.9, 'rgba(254, 215, 170, 0.38)');
+      horizonSunHaze.addColorStop(1.0, 'rgba(251, 146, 60, 0.0)');
+      ctx.fillStyle = horizonSunHaze;
+      ctx.fillRect(0, horizonY - 45, W, 57);
+
+      // Sun atmospheric corona & warm golden-orange glow
+      const sunAtmosphere = ctx.createRadialGradient(sunX, sunY, 12, sunX, sunY, 150);
+      sunAtmosphere.addColorStop(0.0, 'rgba(255, 245, 210, 0.85)');
+      sunAtmosphere.addColorStop(0.25, 'rgba(251, 191, 36, 0.50)');
+      sunAtmosphere.addColorStop(0.60, 'rgba(249, 115, 22, 0.20)');
+      sunAtmosphere.addColorStop(1.0, 'rgba(234, 88, 12, 0.0)');
+      ctx.fillStyle = sunAtmosphere;
+      ctx.beginPath();
+      ctx.arc(sunX, sunY, 150, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Smooth circular sun core disc
+      const sunDisc = ctx.createRadialGradient(sunX, sunY, 3, sunX, sunY, 26);
+      sunDisc.addColorStop(0.0, '#ffffff'); // Pure white-hot core
+      sunDisc.addColorStop(0.45, '#fef08a'); // Warm golden radiance
+      sunDisc.addColorStop(0.85, '#f97316'); // Sunrise amber perimeter
+      sunDisc.addColorStop(1.0, 'rgba(249, 115, 22, 0)');
+      ctx.fillStyle = sunDisc;
+      ctx.beginPath();
+      ctx.arc(sunX, sunY, 26, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Distant sunrise mountain ridges (Original mountain geometry preserved 100%)
+      ctx.fillStyle = '#26152a';
+      ctx.beginPath();
+      ctx.moveTo(0, horizonY);
+      for (let mx = 0; mx <= W; mx += 60) {
+        const my = horizonY - 18 - Math.sin(mx * 0.015) * 14 - Math.cos(mx * 0.008) * 8;
+        ctx.lineTo(mx, my);
+      }
+      ctx.lineTo(W, horizonY);
+      ctx.closePath();
+      ctx.fill();
+
+      // --- 2. 3D ELEVATED ROAD SURFACE WITH CINEMATIC SPEED EFFECTS ---
+      const roadTop = horizonY;
+      const roadBottom = H;
+      const roadHeight = roadBottom - roadTop;
+
+      // Asymmetrical perspective road plane
+      ctx.fillStyle = '#1c1f2b'; // Dark asphalt base
+      ctx.beginPath();
+      ctx.moveTo(0, roadTop);
+      ctx.lineTo(W, roadTop);
+      ctx.lineTo(W, roadBottom);
+      ctx.lineTo(0, roadBottom);
+      ctx.closePath();
+      ctx.fill();
+
+      // Road texture gradient with sunrise road specular highlights
+      const roadGloss = ctx.createLinearGradient(0, roadTop, 0, roadBottom);
+      roadGloss.addColorStop(0.0, 'rgba(251, 146, 60, 0.22)'); // Sunrise horizon reflection
+      roadGloss.addColorStop(0.15, 'rgba(60, 65, 80, 0.35)');
+      roadGloss.addColorStop(0.6, '#171922');
+      roadGloss.addColorStop(1.0, '#0f1118');
+      ctx.fillStyle = roadGloss;
+      ctx.fillRect(0, roadTop, W, roadHeight);
+
+      // Guardrail / Shoulder Curb (Left & Right Perspective)
+      ctx.fillStyle = '#475569';
+      ctx.fillRect(0, roadTop, W, 4);
+      ctx.fillStyle = '#cbd5e1';
+      ctx.fillRect(0, roadTop + 4, W, 2);
+
+      // Smoothly moving roadside reflector markers along shoulder curb
+      const markerSpacing = 110;
+      const markerOffset = (SIM.roadOffset * 0.8) % markerSpacing;
+      for (let pmx = -markerSpacing; pmx <= W + markerSpacing; pmx += markerSpacing) {
+        const px = pmx - markerOffset;
+        ctx.fillStyle = '#94a3b8';
+        ctx.fillRect(px, roadTop - 7, 3, 9);
+        ctx.fillStyle = '#f59e0b'; // Amber reflector
+        ctx.fillRect(px, roadTop - 6, 3, 3);
+      }
+
+      // Cinematic animated road-speed streaks (streaming leftward with vehicle speed)
+      if (SIM.currentSpeed > 4) {
+        ctx.save();
+        const streakAlpha = Math.min(0.28, (SIM.currentSpeed / 120) * 0.28);
+        ctx.strokeStyle = `rgba(226, 232, 240, ${streakAlpha})`;
+        ctx.lineWidth = 1.2;
+        for (let s = 0; s < 12; s++) {
+          const streakY = roadTop + roadHeight * (0.32 + (s * 0.052));
+          const streakLen = 45 + (s % 4) * 22;
+          const streakSpeed = (SIM.roadOffset * (1.6 + (s % 3) * 0.35)) % (W + 250);
+          const streakX = W - streakSpeed;
+          ctx.beginPath();
+          ctx.moveTo(streakX, streakY);
+          ctx.lineTo(streakX + streakLen, streakY);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      // Road markings: Scrolling dashed lane lines moving LEFT to match forward driving
+      const laneY = roadTop + roadHeight * 0.52;
+      ctx.strokeStyle = '#f8fafc';
+      ctx.lineWidth = 4;
+      ctx.setLineDash([55, 45]);
+      ctx.lineDashOffset = (SIM.roadOffset % 100);
+      ctx.beginPath();
+      ctx.moveTo(0, laneY);
+      ctx.lineTo(W, laneY);
+      ctx.stroke();
+
+      // Double yellow median line on upper lane moving LEFT
+      const medianY = roadTop + roadHeight * 0.22;
+      ctx.strokeStyle = '#eab308';
+      ctx.lineWidth = 2.5;
+      ctx.setLineDash([35, 30]);
+      ctx.lineDashOffset = (SIM.roadOffset % 65);
+      ctx.beginPath();
+      ctx.moveTo(0, medianY);
+      ctx.lineTo(W, medianY);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // --- 3. DYNAMIC ROAD BUMPS (Requirement #6) ---
+      const hasBumps = SIM.piezoAmp >= 0.8;
+      el.hudRoadBumpNotice.textContent = hasBumps 
+        ? `Road: Bumpy Rumble Strips (Amp: ${SIM.piezoAmp.toFixed(1)}mm)` 
+        : `Road: Smooth Highway`;
+      el.hudRoadBumpNotice.className = hasBumps ? "text-[9px] font-mono text-purple-400 font-bold" : "text-[9px] font-mono text-slate-400";
+
+      if (hasBumps) {
+        ctx.fillStyle = '#a855f7'; // Purple rumble strip indicator
+        ctx.strokeStyle = '#e9d5ff';
+        ctx.lineWidth = 1.5;
+        const bumpSpacing = 85;
+        const bumpOffset = (SIM.roadOffset * 1.2) % bumpSpacing;
+        for (let bx = -bumpSpacing; bx <= W + bumpSpacing; bx += bumpSpacing) {
+          const rx = bx - bumpOffset;
+          const ry = roadTop + roadHeight * 0.48;
+          ctx.beginPath();
+          ctx.ellipse(rx, ry + 12, 14, 4.5, -0.05, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+        }
+      }
+
+      // --- 4. CENTERED VEHICLE COORDINATES & SUSPENSION DYNAMICS ---
+      // Vehicle positioned at the HORIZONTAL CENTER of the scene
+      const carW = Math.min(W * 0.38, 440);
+      const carH = carW * 0.40;
+      const carX = (W - carW) * 0.5; // Firmly centered horizontally
+      
+      // Road elevation: placed firmly on the main perspective lane
+      const baseCarY = roadTop + roadHeight * 0.24;
+      const cy = baseCarY - SIM.suspensionBounce; // Dynamic bounce from road bumps & suspension!
+
+      // --- 5. CLEARLY VISIBLE VEHICLE SHADOWS (Grounded & Directional) ---
+      ctx.save();
+
+      // A. Directional Cast Body Shadow (Sun is on the left, casting shadow forward-rightward)
+      const castShadowX = carX + carW * 0.54;
+      const castShadowY = cy + carH * 0.91;
+      const castShadowGrad = ctx.createRadialGradient(
+        castShadowX, castShadowY, 12,
+        castShadowX + 10, castShadowY + 2, carW * 0.54
+      );
+      castShadowGrad.addColorStop(0.0, 'rgba(0, 0, 0, 0.65)');
+      castShadowGrad.addColorStop(0.45, 'rgba(10, 15, 26, 0.38)');
+      castShadowGrad.addColorStop(0.85, 'rgba(15, 23, 42, 0.12)');
+      castShadowGrad.addColorStop(1.0, 'rgba(0, 0, 0, 0.0)');
+      ctx.fillStyle = castShadowGrad;
+      ctx.beginPath();
+      ctx.ellipse(castShadowX + 12, castShadowY + 2, carW * 0.52, carH * 0.22, 0.04, 0, Math.PI * 2);
+      ctx.fill();
+
+      // B. Soft Grounding Contact Shadow directly under vehicle chassis (Ambient Occlusion)
+      const contactShadowY = cy + carH * 0.89;
+      const contactShadowGrad = ctx.createRadialGradient(
+        carX + carW * 0.48, contactShadowY, 8,
+        carX + carW * 0.48, contactShadowY, carW * 0.42
+      );
+      contactShadowGrad.addColorStop(0.0, 'rgba(0, 0, 0, 0.85)');
+      contactShadowGrad.addColorStop(0.5, 'rgba(5, 8, 15, 0.55)');
+      contactShadowGrad.addColorStop(1.0, 'rgba(0, 0, 0, 0.0)');
+      ctx.fillStyle = contactShadowGrad;
+      ctx.beginPath();
+      ctx.ellipse(carX + carW * 0.48, contactShadowY, carW * 0.42, carH * 0.11, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // C. Distinct Contact Shadows beneath each wheel
+      const wheelR = carH * 0.25;
+      const frontWheelX = carX + carW * 0.78;
+      const rearWheelX = carX + carW * 0.20;
+      const wheelY = cy + carH * 0.78;
+      const wheelGroundY = wheelY + wheelR;
+
+      [rearWheelX, frontWheelX].forEach(wx => {
+        // Direct tire-to-road contact patch shadow (tight, dark ellipse)
+        const tireContactGrad = ctx.createRadialGradient(wx, wheelGroundY - 2, 2, wx, wheelGroundY - 1, wheelR * 0.85);
+        tireContactGrad.addColorStop(0.0, 'rgba(0, 0, 0, 0.95)');
+        tireContactGrad.addColorStop(0.5, 'rgba(0, 0, 0, 0.65)');
+        tireContactGrad.addColorStop(1.0, 'rgba(0, 0, 0, 0.0)');
+        ctx.fillStyle = tireContactGrad;
+        ctx.beginPath();
+        ctx.ellipse(wx, wheelGroundY - 1, wheelR * 0.85, 4.5, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Subtle directional cast shadow for each wheel (cast slightly to the right)
+        const wheelCastGrad = ctx.createRadialGradient(wx + 8, wheelGroundY + 1, 2, wx + 8, wheelGroundY + 1, wheelR * 0.75);
+        wheelCastGrad.addColorStop(0.0, 'rgba(0, 0, 0, 0.55)');
+        wheelCastGrad.addColorStop(1.0, 'rgba(0, 0, 0, 0.0)');
+        ctx.fillStyle = wheelCastGrad;
+        ctx.beginPath();
+        ctx.ellipse(wx + 8, wheelGroundY + 2, wheelR * 0.70, 5, 0.05, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      // D. Subtle Cyan Ground-Effect Neon Underglow
+      const underglow = ctx.createRadialGradient(carX + carW * 0.5, cy + carH * 0.88, 10, carX + carW * 0.5, cy + carH * 0.90, carW * 0.48);
+      underglow.addColorStop(0.0, 'rgba(6, 182, 212, 0.35)');
+      underglow.addColorStop(0.4, 'rgba(14, 165, 233, 0.18)');
+      underglow.addColorStop(1.0, 'rgba(0, 0, 0, 0.0)');
+      ctx.fillStyle = underglow;
+      ctx.beginPath();
+      ctx.ellipse(carX + carW * 0.5, cy + carH * 0.90, carW * 0.48, carH * 0.18, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.restore();
+
+      // --- 6. REALISTIC HEADLIGHTS & VOLUMETRIC LIGHT BEAMS ---
+      const hlX = carX + carW - 6;
+      const hlY = cy + carH * 0.52;
+      const hlPulse = 0.92 + 0.08 * Math.sin(SIM.time * 5); // Subtle pulsating illumination
+
+      // Outer soft atmospheric spread
+      const outerBeam = ctx.createRadialGradient(hlX, hlY, 6, hlX + 240, hlY + 20, 260);
+      outerBeam.addColorStop(0.0, `rgba(254, 240, 138, ${0.45 * hlPulse})`);
+      outerBeam.addColorStop(0.3, `rgba(56, 189, 248, ${0.15 * hlPulse})`);
+      outerBeam.addColorStop(1.0, 'rgba(56, 189, 248, 0.0)');
+      ctx.fillStyle = outerBeam;
+      ctx.beginPath();
+      ctx.moveTo(hlX, hlY - 6);
+      ctx.lineTo(W, hlY - 24);
+      ctx.lineTo(W, hlY + 110);
+      ctx.lineTo(hlX, hlY + 16);
+      ctx.closePath();
+      ctx.fill();
+
+      // Inner high-intensity focal cone
+      const innerBeam = ctx.createRadialGradient(hlX, hlY, 2, hlX + 160, hlY + 15, 170);
+      innerBeam.addColorStop(0.0, `rgba(255, 255, 255, ${0.90 * hlPulse})`);
+      innerBeam.addColorStop(0.2, `rgba(254, 240, 138, ${0.55 * hlPulse})`);
+      innerBeam.addColorStop(0.7, `rgba(56, 189, 248, ${0.12 * hlPulse})`);
+      innerBeam.addColorStop(1.0, 'rgba(56, 189, 248, 0.0)');
+      ctx.fillStyle = innerBeam;
+      ctx.beginPath();
+      ctx.moveTo(hlX, hlY - 3);
+      ctx.lineTo(hlX + 320, hlY - 10);
+      ctx.lineTo(hlX + 340, hlY + 55);
+      ctx.lineTo(hlX, hlY + 10);
+      ctx.closePath();
+      ctx.fill();
+
+      // --- 7. VEHICLE CHASSIS & AERODYNAMIC BODY ---
+
+      // Upper Metallic Roof / Aero Glass Canopy
+      const roofGrad = ctx.createLinearGradient(carX + carW * 0.25, cy - 8, carX + carW * 0.78, cy + 8);
+      roofGrad.addColorStop(0.0, '#042f2e');
+      roofGrad.addColorStop(0.5, '#0f766e');
+      roofGrad.addColorStop(1.0, '#134e4a');
+      ctx.fillStyle = roofGrad;
+      ctx.beginPath();
+      ctx.moveTo(carX + carW * 0.24, cy - 4);
+      ctx.lineTo(carX + carW * 0.76, cy - 4);
+      ctx.lineTo(carX + carW * 0.82, cy + 4);
+      ctx.lineTo(carX + carW * 0.18, cy + 4);
+      ctx.closePath();
+      ctx.fill();
+
+      // Sculpted Cyber-Metallic Sports Car Body
+      const bodyTeal = ctx.createLinearGradient(carX, cy - 4, carX, cy + carH);
+      bodyTeal.addColorStop(0.0, '#2dd4bf'); // High-gloss bright teal rim highlight
+      bodyTeal.addColorStop(0.2, '#0d9488'); // Deep vibrant cyber teal
+      bodyTeal.addColorStop(0.65, '#0f766e'); // Midnight metallic teal
+      bodyTeal.addColorStop(1.0, '#042f2e'); // Deep carbon undertone
+      ctx.fillStyle = bodyTeal;
+
+      ctx.beginPath();
+      // Sleek low-drag aerodynamic profile
+      ctx.moveTo(carX + 6, cy + carH * 0.76); // Rear diffuser bottom
+      ctx.lineTo(carX, cy + carH * 0.54);     // Rear aero winglet / bumper
+      ctx.lineTo(carX + 4, cy + carH * 0.38); // Integrated active rear spoiler
+      ctx.lineTo(carX + carW * 0.14, cy + carH * 0.20); // Fastback rear deck slope
+      ctx.lineTo(carX + carW * 0.32, cy);               // Low aero roof peak
+      ctx.lineTo(carX + carW * 0.68, cy);               // Roofline
+      ctx.lineTo(carX + carW * 0.88, cy + carH * 0.34); // Raked windshield
+      ctx.lineTo(carX + carW * 0.98, cy + carH * 0.48); // Low-slung hood
+      ctx.lineTo(carX + carW, cy + carH * 0.65);        // Shark-nose front fascia
+      ctx.lineTo(carX + carW - 14, cy + carH * 0.78);   // Carbon front splitter
+      
+      // Front wheel arch
+      ctx.arc(carX + carW * 0.78, cy + carH * 0.78, carH * 0.25, 0, Math.PI, true);
+      
+      // Aerodynamic side-skirt with rocker panel channel
+      ctx.lineTo(carX + carW * 0.30, cy + carH * 0.78);
+      
+      // Rear wheel arch
+      ctx.arc(carX + carW * 0.20, cy + carH * 0.78, carH * 0.25, 0, Math.PI, true);
+      
+      ctx.closePath();
+      ctx.fill();
+
+      // Sharp Dynamic Body Crease / LED Contour Light Strip
+      ctx.strokeStyle = '#5eead4';
+      ctx.lineWidth = 2.2;
+      ctx.shadowColor = '#2dd4bf';
+      ctx.shadowBlur = 6;
+      ctx.beginPath();
+      ctx.moveTo(carX + carW * 0.06, cy + carH * 0.44);
+      ctx.quadraticCurveTo(carX + carW * 0.5, cy + carH * 0.46, carX + carW * 0.96, cy + carH * 0.46);
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+
+      // Carbon Fiber Side Skirt & Lower Aerodynamic Diffuser
+      ctx.fillStyle = '#090d16';
+      ctx.beginPath();
+      ctx.rect(carX + carW * 0.28, cy + carH * 0.73, carW * 0.42, carH * 0.06);
+      ctx.fill();
+
+      // --- TINTED CANOPY & GLASS COCKPIT ---
+      const winGrad = ctx.createLinearGradient(carX, cy, carX, cy + carH * 0.4);
+      winGrad.addColorStop(0.0, '#030712');
+      winGrad.addColorStop(0.6, '#0f172a');
+      winGrad.addColorStop(1.0, '#1e293b');
+      ctx.fillStyle = winGrad;
+      ctx.strokeStyle = '#38bdf8';
+      ctx.lineWidth = 1.6;
+
+      // Front Cockpit Window
+      ctx.beginPath();
+      ctx.moveTo(carX + carW * 0.52, cy + 4);
+      ctx.lineTo(carX + carW * 0.68, cy + 4);
+      ctx.lineTo(carX + carW * 0.84, cy + carH * 0.35);
+      ctx.lineTo(carX + carW * 0.52, cy + carH * 0.35);
+      ctx.closePath();
+      ctx.fill(); ctx.stroke();
+
+      // Rear Cockpit Window
+      ctx.beginPath();
+      ctx.moveTo(carX + carW * 0.30, cy + 4);
+      ctx.lineTo(carX + carW * 0.50, cy + 4);
+      ctx.lineTo(carX + carW * 0.50, cy + carH * 0.35);
+      ctx.lineTo(carX + carW * 0.18, cy + carH * 0.35);
+      ctx.closePath();
+      ctx.fill(); ctx.stroke();
+
+      // Metallic Cyan-Gold Hybrid Harvester Insignia on Door
+      ctx.fillStyle = '#38bdf8';
+      ctx.shadowColor = '#00f2fe';
+      ctx.shadowBlur = 8;
+      ctx.beginPath();
+      const boltX = carX + carW * 0.44;
+      const boltY = cy + carH * 0.46;
+      ctx.moveTo(boltX + 13, boltY);
+      ctx.lineTo(boltX, boltY + 16);
+      ctx.lineTo(boltX + 8, boltY + 16);
+      ctx.lineTo(boltX + 2, boltY + 30);
+      ctx.lineTo(boltX + 18, boltY + 12);
+      ctx.lineTo(boltX + 10, boltY + 12);
+      ctx.closePath();
+      ctx.fill();
+      ctx.shadowBlur = 0;
+
+      // Dual Slim Matrix LED Headlight Units with Projector Lens
+      ctx.fillStyle = '#ffffff';
+      ctx.shadowColor = '#bae6fd';
+      ctx.shadowBlur = 10;
+      ctx.beginPath();
+      ctx.moveTo(carX + carW - 18, cy + carH * 0.44);
+      ctx.lineTo(carX + carW - 2, cy + carH * 0.47);
+      ctx.lineTo(carX + carW - 4, cy + carH * 0.54);
+      ctx.lineTo(carX + carW - 20, cy + carH * 0.51);
+      ctx.closePath();
+      ctx.fill();
+      ctx.shadowBlur = 0;
+
+      // Full-Width Cyber LED Taillight Bar
+      ctx.fillStyle = SIM.vehicleState === 'decelerating' ? '#ff2222' : '#f43f5e';
+      ctx.shadowColor = '#f43f5e';
+      ctx.shadowBlur = SIM.vehicleState === 'decelerating' ? 18 : 8;
+      ctx.beginPath();
+      ctx.rect(carX, cy + carH * 0.40, 7, carH * 0.16);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+
+      // --- 8. INTERNAL X-RAY ENGINE, SHOCK ABSORBERS, MOTOR & SUPERCAPACITOR ---
+      ctx.save();
+      ctx.globalAlpha = 0.88;
+
+      // A. ENGINE (Under Hood / Front Section) — Pulsing thermal glow tied to hotTemp
+      const engineX = carX + carW * 0.72;
+      const engineY = cy + carH * 0.38;
+      const engineHeatGlow = ctx.createRadialGradient(engineX + 15, engineY + 15, 2, engineX + 15, engineY + 15, 35);
+      engineHeatGlow.addColorStop(0.0, 'rgba(251, 146, 60, 0.85)');
+      engineHeatGlow.addColorStop(0.6, 'rgba(234, 88, 12, 0.45)');
+      engineHeatGlow.addColorStop(1.0, 'rgba(234, 88, 12, 0.0)');
+      ctx.fillStyle = engineHeatGlow;
+      ctx.fillRect(engineX - 10, engineY - 5, 55, 45);
+
+      // Detailed Engine Block Geometry with Wireframe Manifolds
+      ctx.strokeStyle = '#f97316';
+      ctx.lineWidth = 2;
+      ctx.shadowColor = '#f97316';
+      ctx.shadowBlur = 10;
+      ctx.strokeRect(engineX, engineY + 4, 32, 22);
+      ctx.beginPath();
+      ctx.moveTo(engineX + 6, engineY + 4);
+      ctx.lineTo(engineX + 6, engineY - 4);
+      ctx.lineTo(engineX + 26, engineY - 4);
+      ctx.lineTo(engineX + 26, engineY + 4);
+      ctx.stroke();
+
+      // B. REAR DC GENERATOR MOTOR (Axle Deceleration Harvester)
+      const genX = carX + carW * 0.22;
+      const genY = cy + carH * 0.62;
+      const genGlow = ctx.createRadialGradient(genX, genY, 3, genX, genY, 30);
+      genGlow.addColorStop(0.0, 'rgba(56, 189, 248, 0.9)');
+      genGlow.addColorStop(0.6, 'rgba(14, 165, 233, 0.45)');
+      genGlow.addColorStop(1.0, 'rgba(14, 165, 233, 0.0)');
+      ctx.fillStyle = genGlow;
+      ctx.fillRect(genX - 25, genY - 20, 50, 40);
+
+      // Rotating Motor Rotor Visual inside generator
+      ctx.save();
+      ctx.translate(genX, genY);
+      ctx.rotate(SIM.flywheelOmega * 0.08);
+      ctx.strokeStyle = '#38bdf8';
+      ctx.lineWidth = 2.5;
+      ctx.shadowColor = '#38bdf8';
+      ctx.shadowBlur = 8;
+      ctx.strokeRect(-12, -12, 24, 24);
+      ctx.beginPath();
+      ctx.moveTo(-12, 0); ctx.lineTo(12, 0);
+      ctx.moveTo(0, -12); ctx.lineTo(0, 12);
+      ctx.stroke();
+      ctx.restore();
+
+      // C. SUSPENSION SHOCK ABSORBERS (Dynamically responding to bumps)
+      const frontShockX = carX + carW * 0.78;
+      drawCoilSpring(ctx, frontShockX, cy + carH * 0.48 - SIM.shockCompression, cy + carH * 0.76, 7.5, 6, '#c084fc');
+      
+      const rearShockX = carX + carW * 0.22;
+      drawCoilSpring(ctx, rearShockX, cy + carH * 0.48 - SIM.shockCompression, cy + carH * 0.76, 7.5, 6, '#c084fc');
+
+      // Interconnecting Bus Conduits
+      ctx.strokeStyle = '#34d399';
+      ctx.lineWidth = 2.5;
+      ctx.shadowColor = '#34d399';
+      ctx.shadowBlur = 8;
+      ctx.beginPath();
+      ctx.moveTo(genX, genY);
+      ctx.lineTo(carX + carW * 0.48, genY + 4);
+      ctx.lineTo(engineX, engineY + 15);
+      ctx.stroke();
+      
+      // D. GLOWING SUPERCAPACITOR BUFFER (Central Energy Storage & Power Management)
+      const capBoxX = carX + carW * 0.42;
+      const capBoxY = cy + carH * 0.63;
+      const capW = 44;
+      const capH = 16;
+      const soc = Math.max(0, Math.min(1, SIM.capVoltage / SIM.capMaxV));
+
+      // Supercapacitor Housing
+      ctx.fillStyle = '#064e3b';
+      ctx.strokeStyle = '#10b981';
+      ctx.lineWidth = 2;
+      ctx.shadowColor = '#10b981';
+      ctx.shadowBlur = 10;
+      ctx.strokeRect(capBoxX, capBoxY, capW, capH);
+      ctx.fillRect(capBoxX, capBoxY, capW, capH);
+
+      // Active Internal Energy Fill Bar
+      const capFillGrad = ctx.createLinearGradient(capBoxX, capBoxY, capBoxX + capW, capBoxY);
+      capFillGrad.addColorStop(0.0, '#0284c7');
+      capFillGrad.addColorStop(0.5, '#10b981');
+      capFillGrad.addColorStop(1.0, '#f59e0b');
+      ctx.fillStyle = capFillGrad;
+      ctx.fillRect(capBoxX + 2, capBoxY + 2, (capW - 4) * soc, capH - 4);
+
+      // Supercapacitor Micro-readout
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '8px monospace';
+      ctx.textAlign = 'center';
+      ctx.shadowBlur = 0;
+      ctx.fillText(`${(soc * 100).toFixed(0)}%`, capBoxX + capW * 0.5, capBoxY + 11);
+
+      // Animated Supercapacitor Charging Aura Rings
+      if (SIM.totalPowerMW > 0.5 && SIM.vBus > SIM.capVoltage) {
+        const ringProgress = (SIM.time * 2.8) % 1;
+        const ringRadius = 14 + ringProgress * 20;
+        ctx.strokeStyle = `rgba(52, 211, 153, ${1 - ringProgress})`;
+        ctx.lineWidth = 1.8;
+        ctx.shadowColor = '#34d399';
+        ctx.shadowBlur = 6;
+        ctx.beginPath();
+        ctx.ellipse(capBoxX + capW * 0.5, capBoxY + capH * 0.5, ringRadius, ringRadius * 0.55, 0, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
+      ctx.restore(); // End internal x-ray
+
+      // --- 9. 3D WHEELS & ROTATING ALLOY RIMS WITH BRAKE CALIPERS ---
+      [rearWheelX, frontWheelX].forEach(wx => {
+        ctx.save();
+        ctx.translate(wx, wheelY);
+
+        // Low-Profile High-Performance Tire
+        ctx.fillStyle = '#090d16';
+        ctx.beginPath();
+        ctx.arc(0, 0, wheelR, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Outer Rim Lip with Cyan Glow Accent
+        ctx.strokeStyle = '#06b6d4';
+        ctx.lineWidth = 1.8;
+        ctx.shadowColor = '#06b6d4';
+        ctx.shadowBlur = 6;
+        ctx.beginPath();
+        ctx.arc(0, 0, wheelR * 0.88, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+
+        // Dark Alloy Rim Barrel
+        ctx.fillStyle = '#1e293b';
+        ctx.beginPath();
+        ctx.arc(0, 0, wheelR * 0.84, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Perforated Disc Brake Rotor
+        ctx.fillStyle = '#64748b';
+        ctx.beginPath();
+        ctx.arc(0, 0, wheelR * 0.62, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Neon Cyan High-Performance Brake Caliper
+        ctx.fillStyle = '#06b6d4';
+        ctx.shadowColor = '#06b6d4';
+        ctx.shadowBlur = 5;
+        ctx.beginPath();
+        ctx.arc(0, 0, wheelR * 0.65, -0.6, 0.4);
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = '#22d3ee';
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+
+        // Inner Wheel Drum
+        ctx.fillStyle = '#0b1120';
+        ctx.beginPath();
+        ctx.arc(0, 0, wheelR * 0.52, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Silver Dual-Spoke Cyber Alloy Rims (Rotating with Wheel Angle)
+        ctx.save();
+        ctx.rotate(SIM.wheelAngle);
+        ctx.strokeStyle = '#f1f5f9';
+        ctx.lineWidth = 2.4;
+        ctx.shadowColor = '#94a3b8';
+        ctx.shadowBlur = 3;
+        const numSpokes = 5;
+        for (let s = 0; s < numSpokes; s++) {
+          const ang = (s / numSpokes) * Math.PI * 2;
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          ctx.lineTo(Math.cos(ang - 0.08) * wheelR * 0.78, Math.sin(ang - 0.08) * wheelR * 0.78);
+          ctx.moveTo(0, 0);
+          ctx.lineTo(Math.cos(ang + 0.08) * wheelR * 0.78, Math.sin(ang + 0.08) * wheelR * 0.78);
+          ctx.stroke();
+        }
+        // Center Wheel Hub Bolt with Glowing Center Cap
+        ctx.fillStyle = '#38bdf8';
+        ctx.shadowColor = '#38bdf8';
+        ctx.shadowBlur = 6;
+        ctx.beginPath();
+        ctx.arc(0, 0, 5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+
+        ctx.restore();
+      });
+
+      // --- 10. THREE-CHANNEL INDEPENDENT ENERGY VISUALIZATION PATHWAYS ---
+      // A. Kinetic Energy Channel (BLUE): Generator -> Supercapacitor
+      if (SIM.vKinetic > 0.05 || SIM.flywheelOmega > 1) {
+        ctx.save();
+        ctx.fillStyle = '#38bdf8';
+        ctx.shadowColor = '#0284c7';
+        ctx.shadowBlur = 8;
+        const kCount = Math.min(10, Math.floor(SIM.iKinetic / 5) + 3);
+        for (let p = 0; p < kCount; p++) {
+          const progress = (SIM.time * 3.5 + p * (1 / kCount)) % 1;
+          const px = genX + progress * (capBoxX - genX);
+          const py = genY + Math.sin(progress * Math.PI * 2 + SIM.time * 8) * 3;
+          ctx.beginPath();
+          ctx.arc(px, py, 2.2, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        // Blue electric arc
+        ctx.strokeStyle = 'rgba(56, 189, 248, 0.45)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(genX, genY);
+        ctx.lineTo(capBoxX, capBoxY + 8);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      // B. Thermal Energy Channel (ORANGE): Engine TEG -> Supercapacitor
+      if (SIM.vThermal > 0.05) {
+        ctx.save();
+        ctx.fillStyle = '#f97316';
+        ctx.shadowColor = '#ea580c';
+        ctx.shadowBlur = 8;
+        const tCount = Math.min(10, Math.floor(SIM.iThermal / 5) + 3);
+        for (let p = 0; p < tCount; p++) {
+          const progress = (SIM.time * 2.8 + p * (1 / tCount)) % 1;
+          const px = engineX - progress * (engineX - (capBoxX + capW));
+          const py = (engineY + 12) + progress * ((capBoxY + 8) - (engineY + 12)) + Math.sin(progress * Math.PI * 3 + SIM.time * 6) * 3;
+          ctx.beginPath();
+          ctx.arc(px, py, 2.2, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        // Thermal heat waves above engine
+        ctx.strokeStyle = 'rgba(251, 146, 60, 0.4)';
+        ctx.lineWidth = 1.5;
+        for (let w = 0; w < 3; w++) {
+          const waveX = engineX + 6 + w * 10;
+          const waveY = engineY - 6 - ((SIM.time * 20 + w * 8) % 18);
+          ctx.beginPath();
+          ctx.moveTo(waveX - 3, waveY);
+          ctx.quadraticCurveTo(waveX, waveY - 4, waveX + 3, waveY - 8);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      // C. Vibration Energy Channel (PURPLE): Suspension Shock Towers -> Supercapacitor
+      if (SIM.vPiezo > 0.05 || SIM.piezoAmp >= 0.6) {
+        ctx.save();
+        ctx.fillStyle = '#c084fc';
+        ctx.shadowColor = '#a855f7';
+        ctx.shadowBlur = 8;
+        const vCount = Math.min(8, Math.floor(SIM.iPiezo / 2) + 2);
+        // From front shock
+        for (let p = 0; p < vCount; p++) {
+          const progress = (SIM.time * 3.8 + p * (1 / vCount)) % 1;
+          const px = frontShockX - progress * (frontShockX - (capBoxX + capW));
+          const py = (cy + carH * 0.65) + Math.sin(progress * Math.PI * 4 + SIM.time * 10) * 3.5;
+          ctx.beginPath();
+          ctx.arc(px, py, 2.0, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        // From rear shock
+        for (let p = 0; p < vCount; p++) {
+          const progress = (SIM.time * 3.8 + p * (1 / vCount)) % 1;
+          const px = rearShockX + progress * (capBoxX - rearShockX);
+          const py = (cy + carH * 0.65) + Math.cos(progress * Math.PI * 4 + SIM.time * 10) * 3.5;
+          ctx.beginPath();
+          ctx.arc(px, py, 2.0, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.restore();
+      }
+    }
+
+    // ── Waveform Drawing (Oscilloscope) ──
+    function drawWaveform() {
+      const W = waveCanvas.width / window.devicePixelRatio;
+      const H = 140;
+      waveCtx.clearRect(0, 0, W, H);
+
+      // Grid lines
+      waveCtx.strokeStyle = '#1e293b';
+      waveCtx.lineWidth = 1;
+      for (let y = 20; y < H; y += 28) {
+        waveCtx.beginPath();
+        waveCtx.moveTo(0, y);
+        waveCtx.lineTo(W, y);
+        waveCtx.stroke();
+      }
+
+      waveCtx.fillStyle = '#64748b';
+      waveCtx.font = '9px monospace';
+      waveCtx.textAlign = 'left';
+      waveCtx.fillText('5V', 2, 14);
+      waveCtx.fillText('0V', 2, H - 4);
+
+      if (SIM.waveHistory.length < 2) return;
+
+      const step = W / (SIM.maxWavePoints - 1);
+      const maxV = 5.0;
+
+      function drawLine(key, color, lineW) {
+        waveCtx.beginPath();
+        waveCtx.strokeStyle = color;
+        waveCtx.lineWidth = lineW;
+        SIM.waveHistory.forEach((pt, i) => {
+          const x = i * step;
+          const y = H - 8 - (pt[key] / maxV) * (H - 20);
+          if (i === 0) waveCtx.moveTo(x, y);
+          else waveCtx.lineTo(x, y);
+        });
+        waveCtx.stroke();
+      }
+
+      drawLine('vKin', '#38bdf8', 1.5);
+      drawLine('vTherm', '#fbbf24', 1.5);
+      drawLine('vPiezo', '#c084fc', 1.2);
+      drawLine('vBus', '#34d399', 2.5);
+    }
+
+    // ── UI Updates ──
+    function updateUI() {
+      el.hudSpeed.textContent = `${Math.round(SIM.currentSpeed)} km/h`;
+      el.valTargetSpeed.textContent = `${Math.round(SIM.targetSpeed)} km/h`;
+
+      const rigLabels = { kinetic: 'Kinetic Output', thermal: 'Thermal Output', piezo: 'Piezo Output' };
+      const rigColors = { kinetic: '#38bdf8', thermal: '#fbbf24', piezo: '#c084fc' };
+      const rigV = { kinetic: SIM.vKinetic, thermal: SIM.vThermal, piezo: SIM.vPiezo };
+      const rigI = { kinetic: SIM.iKinetic, thermal: SIM.iThermal, piezo: SIM.iPiezo };
+
+      el.hudRigLabel.textContent = rigLabels[SIM.activeRig];
+      el.hudRigVoltage.style.color = rigColors[SIM.activeRig];
+      el.hudRigVoltage.textContent = `${rigV[SIM.activeRig].toFixed(2)} V`;
+      el.hudRigCurrent.textContent = `${rigI[SIM.activeRig].toFixed(1)} mA`;
+
+      el.hudBusVolt.textContent = `${SIM.vBus.toFixed(2)} V`;
+      el.hudPower.textContent = `${SIM.totalPowerMW.toFixed(1)} mW`;
+
+      el.mKinV.textContent = `${SIM.vKinetic.toFixed(2)} V`;
+      el.mKinI.textContent = `${SIM.iKinetic.toFixed(1)} mA`;
+      el.mThermV.textContent = `${SIM.vThermal.toFixed(2)} V`;
+      el.mThermI.textContent = `${SIM.iThermal.toFixed(1)} mA`;
+      el.mPiezoV.textContent = `${SIM.vPiezo.toFixed(2)} V`;
+      el.mPiezoI.textContent = `${SIM.iPiezo.toFixed(1)} mA`;
+      el.mBusV.textContent = `${SIM.vBus.toFixed(2)} V`;
+      el.mBusPow.textContent = `${SIM.totalPowerMW.toFixed(1)} mW`;
+
+      el.mCapV.textContent = `${SIM.capVoltage.toFixed(2)} V / ${SIM.capMaxV} V max`;
+      const socPct = (SIM.capVoltage / SIM.capMaxV) * 100;
+      el.mCapBar.style.width = `${Math.min(100, socPct).toFixed(1)}%`;
+    }
+
+    // ── Main Simulation Loop ──
+    let lastPhysicsTime = 0;
+    const PHYSICS_INTERVAL = 1 / 20;
+    let physicsAccumulator = 0;
+
+    function mainLoop(timestamp) {
+      requestAnimationFrame(mainLoop);
+
+      // FPS calculation
+      SIM.frameCount++;
+      if (timestamp - SIM.lastFPSTime >= 1000) {
+        SIM.displayFPS = SIM.frameCount;
+        SIM.frameCount = 0;
+        SIM.lastFPSTime = timestamp;
+        el.simFPS.textContent = `${SIM.displayFPS} FPS`;
+      }
+
+      // Physics at 20Hz
+      const dtFrame = Math.min(0.1, (timestamp - (lastPhysicsTime || timestamp)) / 1000);
+      lastPhysicsTime = timestamp;
+      physicsAccumulator += dtFrame;
+
+      while (physicsAccumulator >= PHYSICS_INTERVAL) {
+        physicsStep(PHYSICS_INTERVAL);
+        physicsAccumulator -= PHYSICS_INTERVAL;
+      }
+
+      // High Graphics Rendering
+      const cW = carCanvas.width / window.devicePixelRatio;
+      const cH = carCanvas.height / window.devicePixelRatio;
+      drawCarScene(carCtx, cW, cH);
+      drawWaveform();
+      updateUI();
+    }
+
+    // Initialize
+    requestAnimationFrame(mainLoop);
+
+  })();
+  </script>
+</body>
+</html>

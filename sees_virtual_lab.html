@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>S.E.E.S. - Virtual ATL Benchtop Laboratory</title>
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <style>
+    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    .animate-spin-fast { animation: spin 0.3s linear infinite; }
+    .animate-spin-med { animation: spin 0.8s linear infinite; }
+    .animate-spin-slow { animation: spin 2s linear infinite; }
+    input[type=range] { accent-color: #38bdf8; }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen p-3 md:p-6 font-sans antialiased">
+
+  <!-- Top Navigation & Command Bar -->
+  <nav class="max-w-7xl mx-auto mb-4 bg-slate-900/90 border border-slate-800 rounded-2xl px-5 py-3 flex flex-wrap items-center justify-between gap-4 shadow-xl backdrop-blur">
+    <div class="flex items-center gap-3">
+      <a href="index.html" class="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-500 to-emerald-400 p-0.5 shadow-lg shadow-sky-500/20 block">
+        <div class="w-full h-full bg-slate-950 rounded-[10px] flex items-center justify-center font-black text-sky-400 tracking-wider">
+          SEES
+        </div>
+      </a>
+      <div>
+        <div class="flex items-center gap-2">
+          <a href="index.html" class="text-base font-extrabold text-white tracking-wide hover:text-sky-300 transition">PROJECT S.E.E.S.</a>
+          <span class="text-[10px] px-2 py-0.5 rounded-full bg-sky-500/10 text-sky-400 border border-sky-500/30 font-mono">v2.0 PRO</span>
+        </div>
+        <p class="text-xs text-slate-400 font-medium">Self-Sustaining Energy System</p>
+      </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="flex items-center flex-wrap gap-2 text-xs">
+      <a href="index.html" class="px-3.5 py-1.5 font-semibold rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white transition">
+        Virtual Lab
+      </a>
+      <a href="sees_virtual_lab.html" class="px-3.5 py-1.5 font-semibold rounded-xl bg-sky-500 text-slate-950 shadow-md transition">
+        Digital Twin
+      </a>
+      <a href="master_project_document.html" class="px-3.5 py-1.5 font-semibold rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white transition">
+        Master Dossier
+      </a>
+      <a href="sees_architecture_specification.html" class="px-3.5 py-1.5 font-semibold rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white transition">
+        Architecture Spec
+      </a>
+      <a href="sees_rc_car_prototype_guide.html" class="px-3.5 py-1.5 font-semibold rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white transition">
+        RC Prototype
+      </a>
+      <a href="video.html" class="px-3.5 py-1.5 font-semibold rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-md transition flex items-center gap-1.5">
+        <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+        Video Showcase
+      </a>
+    </div>
+  </nav>
+
+  <!-- Header -->
+  <header class="max-w-7xl mx-auto mb-6 bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-2xl relative overflow-hidden">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div>
+        <div class="flex items-center gap-2 mb-1.5 flex-wrap">
+          <span class="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+            ATL Virtual Physics Bench
+          </span>
+          <span class="px-2.5 py-0.5 text-xs font-medium rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+            Dasara Holiday Remote Edition
+          </span>
+          <span class="px-2.5 py-0.5 text-xs font-mono rounded bg-slate-800 text-slate-300">
+            Verified Physical Models
+          </span>
+        </div>
+        <h1 class="text-2xl md:text-3xl font-bold tracking-tight text-white flex items-center gap-2">
+          S.E.E.S. Virtual Hardware Lab <span class="text-sky-400 text-lg font-normal">| Live Circuit Simulator</span>
+        </h1>
+        <p class="text-slate-400 text-xs md:text-sm mt-1">
+          Full interactive benchtop prototype. Test kinetic spin-down, Seebeck thermal gradients, and piezoelectric vibration with simulated digital multimeters, oscilloscope curve plotting, and automated school lab report logging.
+        </p>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="flex items-center gap-2">
+        <button onclick="runAutoLabExperiment()" class="px-3.5 py-2 text-xs font-bold rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 shadow-lg shadow-sky-500/20 transition flex items-center gap-1.5">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          Run Complete 4-Test Suite
+        </button>
+        <button onclick="window.print()" class="px-3.5 py-2 text-xs font-medium rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition flex items-center gap-1.5">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+          Print Lab Report
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Workstation Layout -->
+  <main class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-5">
+
+    <!-- LEFT COLUMN: Three Harvester Benches (5 cols) -->
+    <section class="lg:col-span-5 space-y-4">
+
+      <!-- Module 1: Kinetic Flywheel Deceleration Bench -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg relative overflow-hidden">
+        <div class="flex justify-between items-center mb-3">
+          <div class="flex items-center gap-2">
+            <span class="w-3 h-3 rounded-full bg-sky-400"></span>
+            <h3 class="text-sm font-bold text-white uppercase tracking-wider">1. Kinetic DC Flywheel Rig</h3>
+          </div>
+          <span class="text-[11px] font-mono text-sky-400 font-semibold" id="labelMotorRpm">0 RPM</span>
+        </div>
+
+        <div class="flex items-center gap-4">
+          <!-- Animated Flywheel Visual -->
+          <div class="relative w-20 h-20 bg-slate-950 rounded-full border-2 border-slate-700 flex items-center justify-center shrink-0 shadow-inner">
+            <div id="flywheelVisual" class="w-16 h-16 rounded-full border-4 border-dashed border-sky-400 flex items-center justify-center transition-all duration-200">
+              <div class="w-4 h-4 rounded-full bg-sky-500"></div>
+            </div>
+            <span class="absolute text-[9px] font-bold text-slate-400">12V GEN</span>
+          </div>
+
+          <!-- Controls -->
+          <div class="flex-1 space-y-2 text-xs">
+            <div class="flex gap-2">
+              <button onclick="spinFlywheel(3500)" class="flex-1 py-1.5 bg-sky-600 hover:bg-sky-500 text-white font-semibold rounded-lg shadow transition">
+                ⚡ Spin High (3500 RPM)
+              </button>
+              <button onclick="spinFlywheel(1500)" class="flex-1 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium rounded-lg border border-slate-700 transition">
+                Spin Med
+              </button>
+            </div>
+            <div class="flex justify-between text-slate-400">
+              <span>Output Voltage: <b class="text-sky-400 font-mono" id="outVoltKinetic">0.00 V</b></span>
+              <span>Current: <b class="text-sky-400 font-mono" id="outCurrKinetic">0.0 mA</b></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Module 2: Thermoelectric Seebeck Module (TEC1-12706) -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg">
+        <div class="flex justify-between items-center mb-3">
+          <div class="flex items-center gap-2">
+            <span class="w-3 h-3 rounded-full bg-amber-400"></span>
+            <h3 class="text-sm font-bold text-white uppercase tracking-wider">2. Seebeck Thermal Rig (TEC1)</h3>
+          </div>
+          <span class="text-[11px] font-mono text-amber-400 font-semibold" id="labelDeltaT">ΔT: 60.0°C</span>
+        </div>
+
+        <div class="space-y-3 text-xs">
+          <!-- Temperature Sliders -->
+          <div>
+            <div class="flex justify-between text-slate-300 mb-1">
+              <span>Hot Side (Hot Water Vessel):</span>
+              <span class="font-mono text-rose-400 font-bold" id="valHotTemp">85°C</span>
+            </div>
+            <input type="range" id="sliderHotTemp" min="25" max="95" step="1" value="85" class="w-full h-1.5 bg-slate-800 rounded cursor-pointer">
+          </div>
+
+          <div>
+            <div class="flex justify-between text-slate-300 mb-1">
+              <span>Cold Side (Ice / Aluminum Heatsink):</span>
+              <span class="font-mono text-blue-400 font-bold" id="valColdTemp">25°C</span>
+            </div>
+            <input type="range" id="sliderColdTemp" min="0" max="40" step="1" value="25" class="w-full h-1.5 bg-slate-800 rounded cursor-pointer">
+          </div>
+
+          <div class="p-2.5 bg-slate-950 rounded-xl border border-slate-800 flex justify-between items-center">
+            <span class="text-slate-400">Seebeck Output ($V_{oc} = \alpha \Delta T$):</span>
+            <div class="text-right">
+              <span class="text-amber-400 font-mono font-bold" id="outVoltThermal">1.80 V</span>
+              <span class="text-slate-500 font-mono text-[10px] ml-1">@ <span id="outCurrThermal">65.0 mA</span></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Module 3: Piezoelectric Cantilever Harvester -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg">
+        <div class="flex justify-between items-center mb-3">
+          <div class="flex items-center gap-2">
+            <span class="w-3 h-3 rounded-full bg-purple-400"></span>
+            <h3 class="text-sm font-bold text-white uppercase tracking-wider">3. Piezo Vibration Cantilever</h3>
+          </div>
+          <span class="text-[11px] font-mono text-purple-400 font-semibold" id="labelPiezoState">Idle</span>
+        </div>
+
+        <div class="flex items-center gap-4">
+          <!-- Animated Bending Beam Visual -->
+          <div class="w-20 h-20 bg-slate-950 rounded-xl border border-slate-800 flex items-center justify-center shrink-0 relative overflow-hidden">
+            <div id="piezoBeamVisual" class="w-14 h-2 bg-purple-500 rounded transform origin-left transition-transform duration-100 shadow-md shadow-purple-500/50"></div>
+            <div class="absolute right-2 w-3.5 h-3.5 bg-amber-400 rounded-sm" title="Tip Mass (Nut)"></div>
+          </div>
+
+          <!-- Controls -->
+          <div class="flex-1 space-y-2 text-xs">
+            <button onclick="flickPiezo()" class="w-full py-1.5 bg-purple-600 hover:bg-purple-500 text-white font-semibold rounded-lg shadow transition">
+              👋 Flick / Vibrate Beam
+            </button>
+            <div class="flex justify-between text-slate-400">
+              <span>Bridge Rectified: <b class="text-purple-400 font-mono" id="outVoltPiezo">0.00 V</b></span>
+              <span>Current: <b class="text-purple-400 font-mono" id="outCurrPiezo">0.0 mA</b></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Power Conditioning Status (Layer 3) -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 text-xs space-y-2">
+        <div class="flex justify-between items-center">
+          <span class="font-bold text-slate-300">Layer 3: Diode-OR Combining Bus</span>
+          <span class="px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800 font-mono">Schottky Active (1N5819)</span>
+        </div>
+        <p class="text-slate-500 leading-tight">
+          Isolates each generator channel. Diode forward drop: <b class="text-slate-300 font-mono">~0.22 V</b>. Eliminates reverse current backfeeding into weaker sources.
+        </p>
+      </div>
+
+    </section>
+
+    <!-- RIGHT COLUMN: Instrumentation, Storage Buffer, Scope & Report (7 cols) -->
+    <section class="lg:col-span-7 space-y-4">
+
+      <!-- Multimeter Dashboard (Virtual DMMs) -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 shadow">
+          <div class="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Bus Voltage</div>
+          <div class="text-lg font-bold font-mono text-sky-400" id="meterBusVolt">0.00 V</div>
+          <div class="text-[10px] text-slate-500">Post-Schottky</div>
+        </div>
+
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 shadow">
+          <div class="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Harvest Current</div>
+          <div class="text-lg font-bold font-mono text-emerald-400" id="meterHarvestCurrent">0.0 mA</div>
+          <div class="text-[10px] text-slate-500">Total Charging</div>
+        </div>
+
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 shadow">
+          <div class="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Gross Power</div>
+          <div class="text-lg font-bold font-mono text-amber-300" id="meterHarvestPower">0.0 mW</div>
+          <div class="text-[10px] text-slate-500">P = V × I</div>
+        </div>
+
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 shadow">
+          <div class="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Accumulated Energy</div>
+          <div class="text-lg font-bold font-mono text-purple-300" id="meterTotalEnergy">0.00 mWh</div>
+          <div class="text-[10px] text-slate-500" id="meterTotalJoules">0.0 J</div>
+        </div>
+      </div>
+
+      <!-- Buffer Storage & Auxiliary Load Workstation (Layer 4) -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+          <div>
+            <h3 class="text-sm font-bold text-white flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+              Layer 4: Supercapacitor Buffer & Auxiliary Equipment
+            </h3>
+            <p class="text-[11px] text-slate-400">5.5V / 1.0 Farad Buffer Capacitor ($\frac{dV}{dt} = \frac{I_{net}}{C}$)</p>
+          </div>
+
+          <!-- Load Toggle Switch -->
+          <div class="flex items-center gap-2 bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800">
+            <span class="text-xs font-medium text-slate-300">Aux Load Switch:</span>
+            <button id="btnToggleLoad" onclick="toggleAuxLoad()" class="px-2.5 py-1 text-xs font-bold rounded-lg bg-slate-800 text-slate-400 border border-slate-700 transition">
+              OFF
+            </button>
+          </div>
+        </div>
+
+        <!-- Supercapacitor Charge Gauge -->
+        <div class="space-y-2 mb-4">
+          <div class="flex justify-between text-xs font-mono">
+            <span class="text-slate-400">Capacitor State of Charge (SoC):</span>
+            <span class="text-emerald-400 font-bold" id="labelCapVolt">0.00 V / 3.30 V max</span>
+          </div>
+          <div class="w-full h-4 bg-slate-950 rounded-full overflow-hidden p-0.5 border border-slate-800">
+            <div id="barCapSoC" class="bg-gradient-to-r from-sky-500 via-emerald-400 to-amber-400 h-full rounded-full transition-all duration-100" style="width: 0%;"></div>
+          </div>
+        </div>
+
+        <!-- Auxiliary Load Visual Status (Fan & LED) -->
+        <div class="grid grid-cols-2 gap-3 pt-3 border-t border-slate-800">
+          <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800 flex items-center gap-3">
+            <div id="ledIndicator" class="w-6 h-6 rounded-full bg-slate-800 border border-slate-700 transition-all shadow"></div>
+            <div>
+              <span class="text-xs font-bold text-slate-200 block">Auxiliary LED</span>
+              <span class="text-[10px] text-slate-500" id="labelLedStatus">Disconnected</span>
+            </div>
+          </div>
+
+          <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800 flex items-center gap-3">
+            <div id="fanVisual" class="w-6 h-6 text-slate-600 transition-all flex items-center justify-center">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+            </div>
+            <div>
+              <span class="text-xs font-bold text-slate-200 block">Auxiliary 5V Fan</span>
+              <span class="text-[10px] text-slate-500" id="labelFanStatus">0 RPM (Stopped)</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Real-time Oscilloscope Chart (HTML Canvas) -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg">
+        <div class="flex justify-between items-center mb-2">
+          <span class="text-xs font-bold text-slate-300">Virtual Oscilloscope — Buffer Voltage & Power Output</span>
+          <span class="text-[10px] font-mono text-emerald-400">Live 10 Hz Sampling</span>
+        </div>
+        <div class="bg-slate-950 rounded-xl p-2 border border-slate-800">
+          <canvas id="scopeCanvas" width="560" height="140" class="w-full h-32 block"></canvas>
+        </div>
+        <div class="flex justify-between text-[10px] text-slate-500 mt-1">
+          <span class="flex items-center gap-1"><span class="w-2 h-0.5 bg-emerald-400 inline-block"></span> Green: Buffer Voltage ($V$)</span>
+          <span class="flex items-center gap-1"><span class="w-2 h-0.5 bg-amber-400 inline-block"></span> Amber: Instant Power ($mW$)</span>
+          <span>Time Span: 30 seconds</span>
+        </div>
+      </div>
+
+      <!-- Formal Lab Test Report Table (Dasara Experiment Evidence) -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg">
+        <div class="flex justify-between items-center mb-3">
+          <h3 class="text-xs font-bold text-white uppercase tracking-wider">
+            Official ATL Lab Experiment Evidence Table
+          </h3>
+          <button onclick="logCurrentPoint()" class="px-2.5 py-1 text-[11px] font-semibold rounded-lg bg-slate-800 hover:bg-slate-700 text-sky-400 border border-slate-700 transition">
+            + Log Manual Point
+          </button>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs font-mono" id="labTable">
+            <thead class="bg-slate-950 text-slate-400 border-b border-slate-800 text-[11px]">
+              <tr>
+                <th class="p-2">Test Run</th>
+                <th class="p-2">Active Source(s)</th>
+                <th class="p-2">Bus V</th>
+                <th class="p-2">Curr (mA)</th>
+                <th class="p-2">Power (mW)</th>
+                <th class="p-2">Capacitor</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800/60 text-slate-300 text-[11px]" id="labTableBody">
+              <!-- Dynamic Rows inserted here -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </section>
+  </main>
+
+  <!-- Interactive JavaScript Engine -->
+  <script>
+    // State variables
+    let motorRpm = 0;
+    let hotTemp = 85;
+    let coldTemp = 25;
+    let piezoEnergy = 0;
+    let capVoltage = 0.0;
+    const CAPACITANCE = 1.0; // 1 Farad
+    let auxLoadOn = false;
+    let accumulatedMWh = 0;
+    let manualTestCount = 1;
+
+    // Scope history
+    const scopeHistory = [];
+    const maxScopePoints = 60;
+
+    // DOM Elements
+    const labelMotorRpm = document.getElementById('labelMotorRpm');
+    const flywheelVisual = document.getElementById('flywheelVisual');
+    const outVoltKinetic = document.getElementById('outVoltKinetic');
+    const outCurrKinetic = document.getElementById('outCurrKinetic');
+
+    const sliderHotTemp = document.getElementById('sliderHotTemp');
+    const sliderColdTemp = document.getElementById('sliderColdTemp');
+    const valHotTemp = document.getElementById('valHotTemp');
+    const valColdTemp = document.getElementById('valColdTemp');
+    const labelDeltaT = document.getElementById('labelDeltaT');
+    const outVoltThermal = document.getElementById('outVoltThermal');
+    const outCurrThermal = document.getElementById('outCurrThermal');
+
+    const piezoBeamVisual = document.getElementById('piezoBeamVisual');
+    const labelPiezoState = document.getElementById('labelPiezoState');
+    const outVoltPiezo = document.getElementById('outVoltPiezo');
+    const outCurrPiezo = document.getElementById('outCurrPiezo');
+
+    const meterBusVolt = document.getElementById('meterBusVolt');
+    const meterHarvestCurrent = document.getElementById('meterHarvestCurrent');
+    const meterHarvestPower = document.getElementById('meterHarvestPower');
+    const meterTotalEnergy = document.getElementById('meterTotalEnergy');
+    const meterTotalJoules = document.getElementById('meterTotalJoules');
+
+    const btnToggleLoad = document.getElementById('btnToggleLoad');
+    const labelCapVolt = document.getElementById('labelCapVolt');
+    const barCapSoC = document.getElementById('barCapSoC');
+    const ledIndicator = document.getElementById('ledIndicator');
+    const labelLedStatus = document.getElementById('labelLedStatus');
+    const fanVisual = document.getElementById('fanVisual');
+    const labelFanStatus = document.getElementById('labelFanStatus');
+    const labTableBody = document.getElementById('labTableBody');
+
+    // Canvas
+    const canvas = document.getElementById('scopeCanvas');
+    const ctx = canvas.getContext('2d');
+
+    // User interactions
+    function spinFlywheel(rpm) {
+      motorRpm = rpm;
+    }
+
+    function flickPiezo() {
+      piezoEnergy = 2.5; // Initial peak excitation
+      labelPiezoState.textContent = 'Oscillating (28 Hz)';
+      labelPiezoState.className = 'text-[11px] font-mono text-purple-400 font-bold';
+      piezoBeamVisual.style.transform = 'rotate(-18deg)';
+      setTimeout(() => { piezoBeamVisual.style.transform = 'rotate(12deg)'; }, 80);
+      setTimeout(() => { piezoBeamVisual.style.transform = 'rotate(-6deg)'; }, 160);
+      setTimeout(() => { piezoBeamVisual.style.transform = 'rotate(0deg)'; }, 240);
+    }
+
+    function toggleAuxLoad() {
+      auxLoadOn = !auxLoadOn;
+      if (auxLoadOn) {
+        btnToggleLoad.textContent = 'ON';
+        btnToggleLoad.className = 'px-2.5 py-1 text-xs font-bold rounded-lg bg-emerald-600 text-white shadow';
+      } else {
+        btnToggleLoad.textContent = 'OFF';
+        btnToggleLoad.className = 'px-2.5 py-1 text-xs font-bold rounded-lg bg-slate-800 text-slate-400 border border-slate-700';
+      }
+    }
+
+    sliderHotTemp.addEventListener('input', (e) => {
+      hotTemp = parseFloat(e.target.value);
+      valHotTemp.textContent = `${hotTemp}°C`;
+    });
+    sliderColdTemp.addEventListener('input', (e) => {
+      coldTemp = parseFloat(e.target.value);
+      valColdTemp.textContent = `${coldTemp}°C`;
+    });
+
+    // Physics Loop (Runs 10 times per second)
+    setInterval(() => {
+      const dt = 0.1; // 100ms step
+
+      // 1. Kinetic Physics (Deceleration decay: friction & back-EMF)
+      if (motorRpm > 0) {
+        motorRpm = Math.max(0, motorRpm - (180 * dt) - (motorRpm * 0.12 * dt));
+      }
+      labelMotorRpm.textContent = `${Math.round(motorRpm)} RPM`;
+
+      // Generator EMF: V = k_e * rpm
+      const v_kin_raw = (motorRpm / 3500) * 4.8;
+      const v_kin = Math.max(0, v_kin_raw - 0.22); // post-diode
+      const i_kin = v_kin > 0 ? (v_kin / 28) * 1000 : 0; // 28 ohm generator coil impedance
+      outVoltKinetic.textContent = `${v_kin.toFixed(2)} V`;
+      outCurrKinetic.textContent = `${i_kin.toFixed(1)} mA`;
+
+      // Flywheel visual rotation
+      if (motorRpm > 2000) flywheelVisual.className = "w-16 h-16 rounded-full border-4 border-dashed border-sky-400 flex items-center justify-center animate-spin-fast";
+      else if (motorRpm > 600) flywheelVisual.className = "w-16 h-16 rounded-full border-4 border-dashed border-sky-400 flex items-center justify-center animate-spin-med";
+      else if (motorRpm > 50) flywheelVisual.className = "w-16 h-16 rounded-full border-4 border-dashed border-sky-400 flex items-center justify-center animate-spin-slow";
+      else flywheelVisual.className = "w-16 h-16 rounded-full border-4 border-dashed border-slate-600 flex items-center justify-center";
+
+      // 2. Thermoelectric Physics (Seebeck effect)
+      const deltaT = Math.max(0, hotTemp - coldTemp);
+      labelDeltaT.textContent = `ΔT: ${deltaT.toFixed(1)}°C`;
+      // Seebeck coefficient: ~0.035 V/K for TEC1 module
+      const v_therm_raw = deltaT * 0.032;
+      const v_therm = Math.max(0, v_therm_raw - 0.22); // post-diode
+      const i_therm = v_therm > 0 ? (v_therm / 24) * 1000 : 0; // 24 ohm internal resistance
+      outVoltThermal.textContent = `${v_therm.toFixed(2)} V`;
+      outCurrThermal.textContent = `${i_therm.toFixed(1)} mA`;
+
+      // 3. Piezo Vibration Physics (Decaying resonance)
+      if (piezoEnergy > 0.02) {
+        piezoEnergy *= 0.88; // Damping
+      } else {
+        piezoEnergy = 0;
+        labelPiezoState.textContent = 'Idle';
+        labelPiezoState.className = 'text-[11px] font-mono text-slate-500 font-semibold';
+      }
+      const v_piezo = Math.max(0, piezoEnergy - 0.22);
+      const i_piezo = v_piezo > 0 ? (v_piezo / 450) * 1000 : 0; // higher impedance
+      outVoltPiezo.textContent = `${v_piezo.toFixed(2)} V`;
+      outCurrPiezo.textContent = `${i_piezo.toFixed(2)} mA`;
+
+      // 4. Diode-OR Combining Bus Logic
+      // Bus voltage takes maximum available diode output
+      const busVoltage = Math.max(v_kin, v_therm, v_piezo);
+      // Total current supplied by all non-reverse-biased sources
+      let totalCurrentMA = 0;
+      if (v_kin >= busVoltage - 0.05) totalCurrentMA += i_kin;
+      if (v_therm >= busVoltage - 0.05) totalCurrentMA += i_therm;
+      if (v_piezo >= busVoltage - 0.05) totalCurrentMA += i_piezo;
+
+      const totalPowerMW = busVoltage * totalCurrentMA;
+      accumulatedMWh += (totalPowerMW / 1000) * (dt / 3600);
+
+      // 5. Layer 4 Supercapacitor Charge / Discharge Integration
+      // If Bus Voltage > Cap Voltage, charge current flows into cap
+      let i_charge_A = 0;
+      if (busVoltage > capVoltage) {
+        i_charge_A = (totalCurrentMA / 1000);
+      }
+
+      // If Aux Load is ON, load draws current from cap
+      let i_load_A = 0;
+      if (auxLoadOn && capVoltage > 0.8) {
+        i_load_A = 0.045; // 45 mA auxiliary load (LED + micro-motor)
+      }
+
+      // dV = (I_in - I_out) * dt / C
+      const dV = ((i_charge_A - i_load_A) * dt) / CAPACITANCE;
+      capVoltage = Math.max(0.0, Math.min(3.3, capVoltage + dV));
+
+      // Update Instrumentation UI
+      meterBusVolt.textContent = `${busVoltage.toFixed(2)} V`;
+      meterHarvestCurrent.textContent = `${totalCurrentMA.toFixed(1)} mA`;
+      meterHarvestPower.textContent = `${totalPowerMW.toFixed(1)} mW`;
+      meterTotalEnergy.textContent = `${accumulatedMWh.toFixed(3)} mWh`;
+      meterTotalJoules.textContent = `${(accumulatedMWh * 3.6).toFixed(2)} J`;
+
+      // Update Cap UI
+      labelCapVolt.textContent = `${capVoltage.toFixed(2)} V / 3.30 V`;
+      const socPercent = (capVoltage / 3.3) * 100;
+      barCapSoC.style.width = `${socPercent.toFixed(1)}%`;
+
+      // Update Aux Equipment Visuals
+      if (auxLoadOn && capVoltage > 1.2) {
+        ledIndicator.className = "w-6 h-6 rounded-full bg-emerald-400 border border-emerald-300 shadow-lg shadow-emerald-500/80";
+        labelLedStatus.textContent = 'Illuminated (Harvested Energy)';
+        labelLedStatus.className = 'text-[10px] text-emerald-400 font-semibold';
+
+        fanVisual.className = "w-6 h-6 text-sky-400 animate-spin-fast";
+        labelFanStatus.textContent = `${Math.round(capVoltage * 600)} RPM (Active)`;
+        labelFanStatus.className = 'text-[10px] text-sky-400 font-semibold';
+      } else {
+        ledIndicator.className = "w-6 h-6 rounded-full bg-slate-800 border border-slate-700";
+        labelLedStatus.textContent = auxLoadOn ? 'Insufficient Voltage (< 1.2V)' : 'Switched OFF';
+        labelLedStatus.className = 'text-[10px] text-slate-500';
+
+        fanVisual.className = "w-6 h-6 text-slate-600";
+        labelFanStatus.textContent = '0 RPM (Stopped)';
+        labelFanStatus.className = 'text-[10px] text-slate-500';
+      }
+
+      // Record Scope Data
+      scopeHistory.push({ v: capVoltage, p: totalPowerMW });
+      if (scopeHistory.length > maxScopePoints) scopeHistory.shift();
+      drawScope();
+
+    }, 100);
+
+    // Oscilloscope drawing
+    function drawScope() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Grid lines
+      ctx.strokeStyle = '#1e293b';
+      ctx.lineWidth = 1;
+      for (let y = 20; y < canvas.height; y += 30) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(canvas.width, y);
+        ctx.stroke();
+      }
+
+      if (scopeHistory.length < 2) return;
+
+      const step = canvas.width / (maxScopePoints - 1);
+
+      // Draw Voltage Trace (Green)
+      ctx.beginPath();
+      ctx.strokeStyle = '#34d399';
+      ctx.lineWidth = 2;
+      scopeHistory.forEach((pt, i) => {
+        const x = i * step;
+        const y = canvas.height - (pt.v / 3.5) * (canvas.height - 10) - 5;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+
+      // Draw Power Trace (Amber)
+      ctx.beginPath();
+      ctx.strokeStyle = '#fbbf24';
+      ctx.lineWidth = 1.5;
+      scopeHistory.forEach((pt, i) => {
+        const x = i * step;
+        const normalizedP = Math.min(250, pt.p) / 250;
+        const y = canvas.height - normalizedP * (canvas.height - 15) - 5;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+    }
+
+    // Manual Log Function
+    function logCurrentPoint(labelOverride, sourcesOverride) {
+      const v = meterBusVolt.textContent;
+      const i = meterHarvestCurrent.textContent;
+      const p = meterHarvestPower.textContent;
+      const cap = capVoltage.toFixed(2) + ' V';
+
+      let sources = sourcesOverride || [];
+      if (!sourcesOverride) {
+        if (motorRpm > 50) sources.push('Kinetic');
+        if (hotTemp - coldTemp > 10) sources.push('Thermal');
+        if (piezoEnergy > 0.05) sources.push('Vibration');
+        if (sources.length === 0) sources.push('None (Quiescent)');
+      }
+
+      const runTitle = labelOverride || `Run #${manualTestCount++}`;
+
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td class="p-2 font-bold text-slate-200">${runTitle}</td>
+        <td class="p-2 text-sky-400">${Array.isArray(sources) ? sources.join(' + ') : sources}</td>
+        <td class="p-2 font-mono text-emerald-400">${v}</td>
+        <td class="p-2 font-mono">${i}</td>
+        <td class="p-2 font-mono text-amber-300 font-bold">${p}</td>
+        <td class="p-2 font-mono text-purple-300">${cap}</td>
+      `;
+      labTableBody.appendChild(tr);
+    }
+
+    // Automated 4-Test Sequence for Dasara Report
+    async function runAutoLabExperiment() {
+      labTableBody.innerHTML = '';
+      alert('Starting Automated 4-Test Sequence: Kinetic Only, Thermal Only, Vibration Only, and Combined System. Please observe the gauges!');
+
+      // Test 1: Kinetic Only
+      sliderHotTemp.value = 25; sliderHotTemp.dispatchEvent(new Event('input'));
+      sliderColdTemp.value = 25; sliderColdTemp.dispatchEvent(new Event('input'));
+      spinFlywheel(3500);
+      await new Promise(r => setTimeout(r, 600));
+      logCurrentPoint('Test 1 (Kinetic Only)', '12V DC Flywheel Generator (Spin-down)');
+
+      // Test 2: Thermal Only
+      motorRpm = 0;
+      sliderHotTemp.value = 85; sliderHotTemp.dispatchEvent(new Event('input'));
+      sliderColdTemp.value = 25; sliderColdTemp.dispatchEvent(new Event('input'));
+      await new Promise(r => setTimeout(r, 600));
+      logCurrentPoint('Test 2 (Thermal Only)', 'Seebeck Module (ΔT = 60°C)');
+
+      // Test 3: Vibration Only
+      sliderHotTemp.value = 25; sliderHotTemp.dispatchEvent(new Event('input'));
+      flickPiezo();
+      await new Promise(r => setTimeout(r, 300));
+      logCurrentPoint('Test 3 (Vibration Only)', 'Piezo Cantilever Beam');
+
+      // Test 4: All Three Combined
+      sliderHotTemp.value = 85; sliderHotTemp.dispatchEvent(new Event('input'));
+      spinFlywheel(3500);
+      flickPiezo();
+      await new Promise(r => setTimeout(r, 500));
+      logCurrentPoint('Test 4 (All Combined)', 'Kinetic + Seebeck + Piezo Combined');
+
+      // Now charge buffer and activate load
+      setTimeout(() => {
+        capVoltage = 2.4;
+        toggleAuxLoad();
+      }, 800);
+    }
+
+    // Initialize with standard preset rows
+    window.onload = () => {
+      runAutoLabExperiment();
+    };
+  </script>
+</body>
+</html>

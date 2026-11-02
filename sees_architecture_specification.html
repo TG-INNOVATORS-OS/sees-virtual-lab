@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <meta charset="UTF-8">
+  <title>PROJECT S.E.E.S. — Complete System Architecture Specification</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 14mm 14mm 14mm 14mm;
+      @bottom-right {
+        content: counter(page);
+      }
+    }
+    body {
+      font-family: 'Segoe UI', Helvetica, Arial, sans-serif;
+      color: #0f172a;
+      line-height: 1.45;
+      font-size: 9.5pt;
+      margin: 0;
+      padding: 0;
+      background: #ffffff;
+    }
+    .page-break {
+      page-break-after: always;
+      break-after: page;
+    }
+    .header-box {
+      border-bottom: 3px double #0284c7;
+      padding-bottom: 10px;
+      margin-bottom: 15px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .title {
+      font-size: 16pt;
+      font-weight: 900;
+      color: #0369a1;
+      margin: 0;
+    }
+    .subtitle {
+      font-size: 8.5pt;
+      color: #64748b;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .badge {
+      background: #0284c7;
+      color: #ffffff;
+      font-size: 8pt;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 999px;
+      text-transform: uppercase;
+    }
+    .meta-grid {
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      padding: 10px 14px;
+      margin-bottom: 14px;
+      font-size: 9pt;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+    h1 {
+      font-size: 13pt;
+      font-weight: 800;
+      color: #0f172a;
+      border-bottom: 2px solid #0284c7;
+      padding-bottom: 3px;
+      margin-top: 14px;
+      margin-bottom: 8px;
+    }
+    h2 {
+      font-size: 10.5pt;
+      font-weight: 700;
+      color: #0369a1;
+      margin-top: 10px;
+      margin-bottom: 4px;
+    }
+    p {
+      margin-top: 0;
+      margin-bottom: 6px;
+      text-align: justify;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 8px 0;
+      font-size: 8.5pt;
+    }
+    th, td {
+      border: 1px solid #cbd5e1;
+      padding: 5px 8px;
+      text-align: left;
+    }
+    th {
+      background: #f1f5f9;
+      color: #0f172a;
+      font-weight: 700;
+    }
+    tr:nth-child(even) {
+      background: #f8fafc;
+    }
+    .layer-card {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 10px 14px;
+      margin-bottom: 10px;
+    }
+    .layer-title {
+      font-weight: 800;
+      font-size: 10.5pt;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 4px;
+    }
+    .tag-blue { color: #0284c7; }
+    .tag-amber { color: #d97706; }
+    .tag-purple { color: #9333ea; }
+    .tag-emerald { color: #059669; }
+    .svg-container {
+      background: #0f172a;
+      border-radius: 8px;
+      padding: 10px;
+      margin: 12px 0;
+      text-align: center;
+    }
+    .callout {
+      background: #f0f9ff;
+      border-left: 4px solid #0284c7;
+      padding: 8px 12px;
+      margin: 8px 0;
+      font-size: 8.5pt;
+      border-radius: 0 6px 6px 0;
+    }
+  </style>
+</head>
+<body>
+
+<div class="bg-slate-950 p-4 border-b border-slate-800 mb-6">
+  <!-- Top Navigation & Command Bar -->
+  <nav class="max-w-7xl mx-auto mb-4 bg-slate-900/90 border border-slate-800 rounded-2xl px-5 py-3 flex flex-wrap items-center justify-between gap-4 shadow-xl backdrop-blur">
+    <div class="flex items-center gap-3">
+      <a href="index.html" class="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-500 to-emerald-400 p-0.5 shadow-lg shadow-sky-500/20 block">
+        <div class="w-full h-full bg-slate-950 rounded-[10px] flex items-center justify-center font-black text-sky-400 tracking-wider">
+          SEES
+        </div>
+      </a>
+      <div>
+        <div class="flex items-center gap-2">
+          <a href="index.html" class="text-base font-extrabold text-white tracking-wide hover:text-sky-300 transition">PROJECT S.E.E.S.</a>
+          <span class="text-[10px] px-2 py-0.5 rounded-full bg-sky-500/10 text-sky-400 border border-sky-500/30 font-mono">v2.0 PRO</span>
+        </div>
+        <p class="text-xs text-slate-400 font-medium">Self-Sustaining Energy System</p>
+      </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="flex items-center flex-wrap gap-2 text-xs">
+      <a href="index.html" class="px-3.5 py-1.5 font-semibold rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white transition">
+        Virtual Lab
+      </a>
+      <a href="sees_virtual_lab.html" class="px-3.5 py-1.5 font-semibold rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white transition">
+        Digital Twin
+      </a>
+      <a href="master_project_document.html" class="px-3.5 py-1.5 font-semibold rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white transition">
+        Master Dossier
+      </a>
+      <a href="sees_architecture_specification.html" class="px-3.5 py-1.5 font-semibold rounded-xl bg-sky-500 text-slate-950 shadow-md transition">
+        Architecture Spec
+      </a>
+      <a href="sees_rc_car_prototype_guide.html" class="px-3.5 py-1.5 font-semibold rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white transition">
+        RC Prototype
+      </a>
+      <a href="video.html" class="px-3.5 py-1.5 font-semibold rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-md transition flex items-center gap-1.5">
+        <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+        Video Showcase
+      </a>
+    </div>
+  </nav>
+</div>
+
+
+  <!-- ==================== PAGE 1: 4-LAYER TOPOLOGY & FLOW ARCHITECTURE ==================== -->
+  <div>
+    <div class="header-box">
+      <div>
+        <h1 class="title">PROJECT S.E.E.S. — SYSTEM ARCHITECTURE SPECIFICATION</h1>
+        <div class="subtitle">Multi-Domain Vehicular Energy Harvesting & Auxiliary Power Decoupling</div>
+      </div>
+      <div>
+        <span class="badge">Architecture Blueprint v1.0</span>
+      </div>
+    </div>
+
+    <div class="meta-grid">
+      <div><strong>Innovators:</strong> Durgam.Noushik, Narsimha (ATL Vice-Captain), B.Tejesh</div>
+      <div><strong>Document Control:</strong> Engineering Architecture v1.0</div>
+      <div><strong>System Classification:</strong> Multi-Input Single-Output (MISO) Hybrid Power Bus</div>
+      <div><strong>Application Domain:</strong> Automotive Auxiliary Load Decoupling</div>
+    </div>
+
+    <h1>1. End-to-End System Energy Architecture Diagram</h1>
+    <p>
+      The S.E.E.S. architecture organizes vehicular energy recovery into four strictly decoupled physical layers, routing energy through an autonomous diode-isolated bus into a dedicated secondary buffer:
+    </p>
+
+    <!-- Detailed Vector Architecture SVG Diagram -->
+    <div class="svg-container">
+      <svg viewBox="0 0 760 380" width="100%" height="auto" style="font-family: 'Segoe UI', sans-serif;">
+        <defs>
+          <marker id="arrow-cyan" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#38bdf8" />
+          </marker>
+          <marker id="arrow-amber" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#fbbf24" />
+          </marker>
+          <marker id="arrow-purple" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#c084fc" />
+          </marker>
+          <marker id="arrow-green" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#34d399" />
+          </marker>
+        </defs>
+
+        <!-- LAYER 1: AMBIENT SOURCES -->
+        <rect x="20" y="20" width="720" height="60" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1.5"/>
+        <text x="35" y="42" fill="#94a3b8" font-size="10" font-weight="bold" letter-spacing="1">LAYER 1: VEHICULAR AMBIENT LOSS DOMAINS</text>
+        
+        <rect x="40" y="48" width="200" height="24" rx="4" fill="#0c4a6e" stroke="#0284c7"/>
+        <text x="140" y="64" fill="#38bdf8" font-size="9.5" font-weight="bold" text-anchor="middle">1. Deceleration Kinetic Energy (Δv)</text>
+
+        <rect x="280" y="48" width="200" height="24" rx="4" fill="#78350f" stroke="#d97706"/>
+        <text x="380" y="64" fill="#fbbf24" font-size="9.5" font-weight="bold" text-anchor="middle">2. Exhaust & Coolant Thermal ΔT</text>
+
+        <rect x="520" y="48" width="200" height="24" rx="4" fill="#581c87" stroke="#9333ea"/>
+        <text x="620" y="64" fill="#c084fc" font-size="9.5" font-weight="bold" text-anchor="middle">3. Road Suspension Vibration (z)</text>
+
+        <!-- Flow Arrows L1 -> L2 -->
+        <path d="M 140 72 L 140 105" stroke="#38bdf8" stroke-width="2" marker-end="url(#arrow-cyan)"/>
+        <path d="M 380 72 L 380 105" stroke="#fbbf24" stroke-width="2" marker-end="url(#arrow-amber)"/>
+        <path d="M 620 72 L 620 105" stroke="#c084fc" stroke-width="2" marker-end="url(#arrow-purple)"/>
+
+        <!-- LAYER 2: TRANSDUCERS -->
+        <rect x="20" y="110" width="720" height="65" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1.5"/>
+        <text x="35" y="128" fill="#94a3b8" font-size="10" font-weight="bold" letter-spacing="1">LAYER 2: TRANSDUCER & ENERGY CONVERSION STAGES</text>
+
+        <rect x="40" y="135" width="200" height="30" rx="4" fill="#082f49" stroke="#38bdf8"/>
+        <text x="140" y="148" fill="#e0f2fe" font-size="9" font-weight="bold" text-anchor="middle">Brushless Motor-Generator</text>
+        <text x="140" y="160" fill="#7dd3fc" font-size="8" text-anchor="middle">Surge: 1.5V – 48V AC/DC • Low Z</text>
+
+        <rect x="280" y="135" width="200" height="30" rx="4" fill="#451a03" stroke="#fbbf24"/>
+        <text x="380" y="148" fill="#fef3c7" font-size="9" font-weight="bold" text-anchor="middle">Seebeck Bi₂Te₃ TEG Array</text>
+        <text x="380" y="160" fill="#fde68a" font-size="8" text-anchor="middle">Baseload: 0.8V – 12V DC • High I</text>
+
+        <rect x="520" y="135" width="200" height="30" rx="4" fill="#3b0764" stroke="#c084fc"/>
+        <text x="620" y="148" fill="#faf5ff" font-size="9" font-weight="bold" text-anchor="middle">Damper & Piezo Cantilever</text>
+        <text x="620" y="160" fill="#e9d5ff" font-size="8" text-anchor="middle">AC Rectified: 1.5V – 15V • High Z</text>
+
+        <!-- Flow Arrows L2 -> L3 -->
+        <path d="M 140 165 L 260 200" stroke="#38bdf8" stroke-width="2" marker-end="url(#arrow-cyan)"/>
+        <path d="M 380 165 L 380 195" stroke="#fbbf24" stroke-width="2" marker-end="url(#arrow-amber)"/>
+        <path d="M 620 165 L 500 200" stroke="#c084fc" stroke-width="2" marker-end="url(#arrow-purple)"/>
+
+        <!-- LAYER 3: POWER MANAGEMENT CONTROLLER -->
+        <rect x="20" y="200" width="720" height="75" rx="8" fill="#0f172a" stroke="#0284c7" stroke-width="2"/>
+        <text x="35" y="220" fill="#38bdf8" font-size="10.5" font-weight="bold" letter-spacing="1">LAYER 3: MISO POWER MANAGEMENT CONTROLLER (PROPOSED NOVELTY)</text>
+
+        <!-- Schottky Diode Blocks -->
+        <rect x="180" y="232" width="100" height="32" rx="4" fill="#1e293b" stroke="#38bdf8"/>
+        <text x="230" y="246" fill="#bae6fd" font-size="8" font-weight="bold" text-anchor="middle">D1: 1N5819</text>
+        <text x="230" y="258" fill="#94a3b8" font-size="7.5" text-anchor="middle">Vf ≈ 0.22V</text>
+
+        <rect x="330" y="232" width="100" height="32" rx="4" fill="#1e293b" stroke="#fbbf24"/>
+        <text x="380" y="246" fill="#fde68a" font-size="8" font-weight="bold" text-anchor="middle">D2: 1N5819</text>
+        <text x="380" y="258" fill="#94a3b8" font-size="7.5" text-anchor="middle">Vf ≈ 0.22V</text>
+
+        <rect x="480" y="232" width="100" height="32" rx="4" fill="#1e293b" stroke="#c084fc"/>
+        <text x="530" y="246" fill="#f3e8ff" font-size="8" font-weight="bold" text-anchor="middle">D3: 1N5819</text>
+        <text x="530" y="258" fill="#94a3b8" font-size="7.5" text-anchor="middle">Bridge + Diode</text>
+
+        <!-- Bus Bar -->
+        <line x1="280" y1="248" x2="330" y2="248" stroke="#34d399" stroke-width="3"/>
+        <line x1="430" y1="248" x2="480" y2="248" stroke="#34d399" stroke-width="3"/>
+
+        <!-- Flow Arrow L3 -> L4 -->
+        <path d="M 380 275 L 380 305" stroke="#34d399" stroke-width="3" marker-end="url(#arrow-green)"/>
+        <text x="390" y="293" fill="#34d399" font-size="8.5" font-weight="bold">Unified V_BUS</text>
+
+        <!-- LAYER 4: STORAGE & LOADS -->
+        <rect x="20" y="305" width="720" height="60" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1.5"/>
+        <text x="35" y="322" fill="#94a3b8" font-size="10" font-weight="bold" letter-spacing="1">LAYER 4: DECOUPLED BUFFER STORAGE & AUXILIARY CONSUMERS</text>
+
+        <rect x="40" y="328" width="260" height="28" rx="4" fill="#064e3b" stroke="#10b981"/>
+        <text x="170" y="342" fill="#a7f3d0" font-size="9" font-weight="bold" text-anchor="middle">Supercapacitor / Aux Lithium Buffer</text>
+        <text x="170" y="352" fill="#6ee7b7" font-size="7.5" text-anchor="middle">5.5V 1.0F–4.0F • Rapid Surge Absorption</text>
+
+        <line x1="300" y1="342" x2="370" y2="342" stroke="#34d399" stroke-width="2" marker-end="url(#arrow-green)"/>
+        <text x="335" y="337" fill="#34d399" font-size="7.5" font-weight="bold" text-anchor="middle">Decoupled</text>
+
+        <rect x="370" y="328" width="350" height="28" rx="4" fill="#312e81" stroke="#818cf8"/>
+        <text x="545" y="342" fill="#e0e7ff" font-size="9" font-weight="bold" text-anchor="middle">Vehicular Auxiliary Electrical Equipment</text>
+        <text x="545" y="352" fill="#c7d2fe" font-size="7.5" text-anchor="middle">LED Headlights • Digital Dashboard • AC Fans • Telemetry [0W Traction Draw]</text>
+      </svg>
+    </div>
+
+    <div style="text-align: center; margin: 10px 0;">
+      <img src="sees_architecture_infographic.jpg" alt="S.E.E.S. High-Resolution Architecture Infographic" style="width: 100%; max-height: 230px; object-fit: cover; border-radius: 8px; border: 1px solid #cbd5e1; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
+      <div style="font-size: 8pt; color: #64748b; font-style: italic; margin-top: 4px;">Figure 1.1: Multi-Layer Photorealistic Engineering Architecture Infographic</div>
+    </div>
+
+    <h1>2. Detailed Specifications of the Four Architecture Layers</h1>
+
+    <div class="layer-card">
+      <div class="layer-title"><span class="tag-blue">Layer 1 — Vehicular Ambient Energy Sources</span> <span style="font-size: 8pt; color: #64748b;">Boundary: Physical Vehicle</span></div>
+      <p>
+        Captures three naturally occurring ambient waste streams during operation: (1) <strong>Kinetic Inertia</strong> released during vehicle deceleration events, (2) <strong>Thermal Gradient ($\Delta T$)</strong> between hot exhaust surfaces (200°C–400°C) and passing ambient airflow (30°C), and (3) <strong>Mechanical Vibration</strong> induced by road surface roughness through the vehicle unsprung mass.
+      </p>
+    </div>
+
+    <div class="layer-card">
+      <div class="layer-title"><span class="tag-amber">Layer 2 — Energy Conversion Transducers</span> <span style="font-size: 8pt; color: #64748b;">Domain: Mechanical-to-Electrical</span></div>
+      <p>
+        Three specialized converters operate simultaneously: (1) <strong>Permanent Magnet Motor-Generators</strong> producing high-power charging bursts during braking, (2) <strong>Bismuth Telluride ($\text{Bi}_2\text{Te}_3$) Seebeck Modules</strong> generating continuous DC baseload current via electron diffusion, and (3) <strong>Bimodal Dampers</strong> pairing high-impedance piezoelectric cantilevers for micro-telemetry with electromagnetic dampers for suspension travel.
+      </p>
+    </div>
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- ==================== PAGE 2: CONTROLLER LOGIC & DECOUPLING SPECS ==================== -->
+  <div>
+    <div class="layer-card">
+      <div class="layer-title"><span class="tag-purple">Layer 3 — MISO Power Management Controller (Proposed Novelty)</span> <span style="font-size: 8pt; color: #64748b;">Domain: Power Conditioning</span></div>
+      <p>
+        The core proposed novelty of S.E.E.S. is the <strong>Multi-Input Single-Output (MISO) Diode-OR Combining Bus</strong>. The novelty lies in the combination: surge (kinetic), baseload (thermal) and vibration channels joined by one diode-OR bus into a shared supercapacitor buffer that feeds a decoupled auxiliary load. The diode-OR technique alone is standard:
+      </p>
+      <ul>
+        <li><strong>Cross-Conduction Prevention:</strong> Ultra-low forward drop Schottky diodes (1N5819, $V_f \approx 0.22\text{V}$) isolate each generator channel. When the kinetic generator spikes to 4.58V during deceleration, diode D2 reverse-biases automatically, completely protecting the 1.70V Seebeck module from over-voltage destruction.</li>
+        <li><strong>No Switching Electronics on the Bench Prototype:</strong> the bench uses only passive diodes, so there is no controller standby draw. A vehicle-scale version may add an optional boost/MPPT stage; its losses must be counted in E_overhead.</li>
+      </ul>
+    </div>
+
+    <div class="layer-card">
+      <div class="layer-title"><span class="tag-emerald">Layer 4 — Decoupled Storage Buffer & Auxiliary Loads</span> <span style="font-size: 8pt; color: #64748b;">Domain: Electrical Supply</span></div>
+      <p>
+        Harvested electricity charges an autonomous secondary buffer (electrochemical supercapacitor bank or auxiliary 12V LiFePO4 battery):
+      </p>
+      <ul>
+        <li><strong>Surge Absorption & Baseload Storage:</strong> The supercapacitor absorbs transient deceleration spikes and continuous thermoelectric baseload, maintaining stable $2.4\text{V to }12\text{V}$ bus potentials.</li>
+        <li><strong>Decoupled Auxiliary Load Delivery:</strong> Powers auxiliary consumers (LED headlights, digital instrument cluster, cooling fans, and telemetry radios) with <strong>zero current drawn from the main vehicle traction battery</strong>, directly extending vehicle driving range.</li>
+      </ul>
+    </div>
+
+    <h1>3. Comprehensive System Interface Matrix</h1>
+    <table>
+      <thead>
+        <tr>
+          <th>Subsystem Interface</th>
+          <th>Voltage Domain</th>
+          <th>Current Characteristic</th>
+          <th>Impedance Level</th>
+          <th>Conditioning Strategy</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Kinetic Channel</strong></td>
+          <td>1.5V – 48V (AC/DC)</td>
+          <td>High Surge (100 mA – 100 A)</td>
+          <td>Low ($20\ \Omega\text{ to }0.5\ \Omega$)</td>
+          <td>Synchronous Rectification (optional, vehicle-scale) + Schottky Diode D1</td>
+        </tr>
+        <tr>
+          <td><strong>Thermoelectric Channel</strong></td>
+          <td>0.8V – 12V DC</td>
+          <td>Continuous Baseload (50 mA – 15 A)</td>
+          <td>Low-Medium ($24\ \Omega\text{ to }2\ \Omega$)</td>
+          <td>Synchronous Boost MPPT (optional, vehicle-scale) + Schottky Diode D2</td>
+        </tr>
+        <tr>
+          <td><strong>Vibration Channel</strong></td>
+          <td>1.5V – 15V AC Spikes</td>
+          <td>Micro-Current ($1\ \text{mA to }200\ \text{mA}$)</td>
+          <td>High (modelled at 450 Ω; real discs kΩ–MΩ)</td>
+          <td>Full-Wave Bridge Rectifier + Schottky Diode D3</td>
+        </tr>
+        <tr>
+          <td><strong>Common Output Bus</strong></td>
+          <td><strong>2.4V – 12.0V DC</strong></td>
+          <td><strong>Summed Charge Current</strong></td>
+          <td><strong>Regulated</strong></td>
+          <td><strong>Supercapacitor Storage Buffer (1.0F – 4.0F)</strong></td>
+        </tr>
+        <tr>
+          <td><strong>Auxiliary Output</strong></td>
+          <td>5.0V / 12.0V DC</td>
+          <td>Steady Continuous Draw</td>
+          <td>Load-Dependent</td>
+          <td>Isolated Decoupled Auxiliary Rail</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h1>4. Core Engineering Benefits of this Architecture</h1>
+    <ol>
+      <li><strong>Surge + Baseload Complementarity:</strong> Solves the intermittency problem of regenerative braking by combining it with the continuous thermal gradient of vehicle exhaust.</li>
+      <li><strong>Electrical Immunity:</strong> No single generator can back-feed or damage another generator under any driving condition.</li>
+      <li><strong>Autonomous Decoupling:</strong> Auxiliary loads run completely independent of main battery state of charge, improving EV battery longevity and safety.</li>
+    </ol>
+
+    <div style="margin-top: 25px; padding: 10px; background: #f1f5f9; border-radius: 6px; text-align: center; font-size: 8pt; color: #64748b;">
+      Project S.E.E.S. System Architecture Blueprint • Invented by Durgam.Noushik, Narsimha (ATL Vice-Captain), and B.Tejesh
+    </div>
+  </div>
+
+</body>
+</html>

@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <meta charset="UTF-8">
+  <title>PROJECT S.E.E.S. — Scale RC / Toy Car Prototype Integration Blueprint</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 12mm 14mm 12mm 14mm;
+      @bottom-right {
+        content: counter(page);
+      }
+    }
+    body {
+      font-family: 'Segoe UI', Helvetica, Arial, sans-serif;
+      color: #0f172a;
+      line-height: 1.45;
+      font-size: 9.5pt;
+      margin: 0;
+      padding: 0;
+      background: #ffffff;
+    }
+    .page-break {
+      page-break-after: always;
+      break-after: page;
+    }
+    .header-box {
+      border-bottom: 3px double #0284c7;
+      padding-bottom: 10px;
+      margin-bottom: 15px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .title {
+      font-size: 16pt;
+      font-weight: 900;
+      color: #0369a1;
+      margin: 0;
+    }
+    .subtitle {
+      font-size: 8.5pt;
+      color: #64748b;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .badge {
+      background: #0284c7;
+      color: #ffffff;
+      font-size: 8pt;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 999px;
+      text-transform: uppercase;
+    }
+    .memo-bar {
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      padding: 8px 12px;
+      margin-bottom: 12px;
+      font-size: 8.5pt;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px;
+    }
+    h1 {
+      font-size: 13pt;
+      font-weight: 800;
+      color: #0f172a;
+      border-bottom: 2px solid #0284c7;
+      padding-bottom: 3px;
+      margin-top: 14px;
+      margin-bottom: 8px;
+    }
+    h2 {
+      font-size: 10.5pt;
+      font-weight: 700;
+      color: #0369a1;
+      margin-top: 10px;
+      margin-bottom: 4px;
+    }
+    p {
+      margin-top: 0;
+      margin-bottom: 6px;
+      text-align: justify;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 8px 0;
+      font-size: 8.5pt;
+    }
+    th, td {
+      border: 1px solid #cbd5e1;
+      padding: 5px 8px;
+      text-align: left;
+    }
+    th {
+      background: #f1f5f9;
+      color: #0f172a;
+      font-weight: 700;
+    }
+    tr:nth-child(even) {
+      background: #f8fafc;
+    }
+    .step-card {
+      background: #f8fafc;
+      border-left: 4px solid #0284c7;
+      padding: 8px 12px;
+      margin: 8px 0;
+      border-radius: 0 6px 6px 0;
+    }
+    .step-title {
+      font-weight: 800;
+      color: #0369a1;
+      font-size: 9.5pt;
+      margin-bottom: 2px;
+    }
+    .img-box {
+      text-align: center;
+      margin: 10px 0;
+    }
+    .img-box img {
+      width: 100%;
+      max-height: 380px;
+      object-fit: contain;
+      border-radius: 8px;
+      border: 1px solid #cbd5e1;
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+      background: #ffffff;
+    }
+    .highlight-box {
+      background: #f0fdf4;
+      border-left: 4px solid #16a34a;
+      padding: 8px 12px;
+      margin: 8px 0;
+      border-radius: 0 6px 6px 0;
+      font-size: 8.5pt;
+      color: #166534;
+    }
+  </style>
+</head>
+<body>
+
+<div class="bg-slate-950 p-4 border-b border-slate-800 mb-6">
+  <!-- Top Navigation & Command Bar -->
+  <nav class="max-w-7xl mx-auto mb-4 bg-slate-900/90 border border-slate-800 rounded-2xl px-5 py-3 flex flex-wrap items-center justify-between gap-4 shadow-xl backdrop-blur">
+    <div class="flex items-center gap-3">
+      <a href="index.html" class="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-500 to-emerald-400 p-0.5 shadow-lg shadow-sky-500/20 block">
+        <div class="w-full h-full bg-slate-950 rounded-[10px] flex items-center justify-center font-black text-sky-400 tracking-wider">
+          SEES
+        </div>
+      </a>
+      <div>
+        <div class="flex items-center gap-2">
+          <a href="index.html" class="text-base font-extrabold text-white tracking-wide hover:text-sky-300 transition">PROJECT S.E.E.S.</a>
+          <span class="text-[10px] px-2 py-0.5 rounded-full bg-sky-500/10 text-sky-400 border border-sky-500/30 font-mono">v2.0 PRO</span>
+        </div>
+        <p class="text-xs text-slate-400 font-medium">Self-Sustaining Energy System</p>
+      </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="flex items-center flex-wrap gap-2 text-xs">
+      <a href="index.html" class="px-3.5 py-1.5 font-semibold rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white transition">
+        Virtual Lab
+      </a>
+      <a href="sees_virtual_lab.html" class="px-3.5 py-1.5 font-semibold rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white transition">
+        Digital Twin
+      </a>
+      <a href="master_project_document.html" class="px-3.5 py-1.5 font-semibold rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white transition">
+        Master Dossier
+      </a>
+      <a href="sees_architecture_specification.html" class="px-3.5 py-1.5 font-semibold rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white transition">
+        Architecture Spec
+      </a>
+      <a href="sees_rc_car_prototype_guide.html" class="px-3.5 py-1.5 font-semibold rounded-xl bg-sky-500 text-slate-950 shadow-md transition">
+        RC Prototype
+      </a>
+      <a href="video.html" class="px-3.5 py-1.5 font-semibold rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-md transition flex items-center gap-1.5">
+        <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+        Video Showcase
+      </a>
+    </div>
+  </nav>
+</div>
+
+
+  <!-- ==================== PAGE 1: VEHICLE CONVERSION BLUEPRINT & PHOTO ==================== -->
+  <div>
+    <div class="header-box">
+      <div>
+        <h1 class="title">PROJECT S.E.E.S. — SCALE RC VEHICLE PROTOTYPE</h1>
+        <div class="subtitle">1:10 Scale Working Demonstrator Guide for Narsimha & Team</div>
+      </div>
+      <div>
+        <span class="badge">Option 3 Blueprint v1.0</span>
+      </div>
+    </div>
+
+    <div class="memo-bar">
+      <div><strong>Innovators:</strong> Durgam.Noushik (Lead), Narsimha (Hardware), B.Tejesh</div>
+      <div><strong>Chassis:</strong> 1:10 Scale Toy/RC Car Chassis (₹500–₹1,000)</div>
+      <div><strong>Target Showcase:</strong> Telangana Future Innovators Challenge (TFIC) & DSO</div>
+      <div><strong>Safety Standard:</strong> 100% Non-Hazardous Low-Voltage (&lt; 6V DC) Operation</div>
+    </div>
+
+    <h1>1. Photographic Component Blueprint (How it Looks Assembled)</h1>
+    
+    <div class="img-box">
+      <img src="sees_rc_car_prototype.jpg" alt="S.E.E.S. RC Scale Model Prototype">
+      <div style="font-size: 8pt; color: #64748b; font-style: italic; margin-top: 4px;">
+        Figure 1.0: Real Component Placement inside 1:10 Scale RC Car Chassis
+      </div>
+    </div>
+
+    <h1>2. Component Layout & Vehicle Mapping</h1>
+    <table>
+      <thead>
+        <tr>
+          <th>Vehicle Location</th>
+          <th>Installed Harvester</th>
+          <th>Physical Mechanism</th>
+          <th>Electrical Output</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Rear Axle</strong></td>
+          <td>12V DC Motor-Generator</td>
+          <td>Geared to rear axle; spins as toy car rolls across floor/table</td>
+          <td><strong>2.5V – 4.5V DC (Surge)</strong></td>
+        </tr>
+        <tr>
+          <td><strong>Roof / Hood</strong></td>
+          <td>TEC1-12706 Seebeck TEG + Heatsink</td>
+          <td>Warm cup or heated metal plate placed on top simulates exhaust heat</td>
+          <td><strong>1.5V – 1.8V DC (Baseload)</strong></td>
+        </tr>
+        <tr>
+          <td><strong>Front Suspension</strong></td>
+          <td>Piezoelectric Ceramic Disc</td>
+          <td>Bonded to front axle spring; vibrates when rolling over obstacles</td>
+          <td><strong>AC Spikes $\to$ DC Bridge</strong></td>
+        </tr>
+        <tr>
+          <td><strong>Interior Cockpit</strong></td>
+          <td>Schottky Diode-OR Bus + 5.5V Supercap</td>
+          <td>3× 1N5819 diodes block back-feeding; buffer stores all charge</td>
+          <td><strong>2.40V Regulated Bus</strong></td>
+        </tr>
+        <tr>
+          <td><strong>Front Bumper</strong></td>
+          <td>2× 5mm White/Green LED Headlights</td>
+          <td>Connected through cockpit toggle switch as the auxiliary load</td>
+          <td><strong>Runs on 0W Battery Power!</strong></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- ==================== PAGE 2: HOW TO BUILD & DEMONSTRATE IT ==================== -->
+  <div>
+    <h1>3. Step-by-Step Build Instructions for Narsimha</h1>
+
+    <div class="step-card">
+      <div class="step-title">STEP 1: Rear Axle Kinetic Coupling</div>
+      <p>
+        Take the toy car's rear axle. Glue a small gear or rubber pulley to the axle. Mount the 12V DC motor inside the rear chassis so its shaft meshes with that gear. Whenever the car rolls forward on the floor, the spinning wheels turn the motor shaft, immediately generating <strong>2.5V to 4.5V DC</strong>!
+      </p>
+    </div>
+
+    <div class="step-card">
+      <div class="step-title">STEP 2: Roof/Hood Thermal Module Mounting</div>
+      <p>
+        Mount the TEC1-12706 Peltier module flat on the roof or hood with its aluminum heatsink underneath. During a demonstration, placing a warm cup of water, a heated metal washer, or warm water on top instantly generates <strong>1.5V DC continuous baseload current</strong>.
+      </p>
+    </div>
+
+    <div class="step-card">
+      <div class="step-title">STEP 3: Suspension Piezo Installation</div>
+      <p>
+        Affix the round brass piezoelectric disc onto the front suspension arm or spring. When the toy drives over books, pens, or floor bumps, the vertical bouncing flexes the disc, generating electrical charges through the small bridge rectifier.
+      </p>
+    </div>
+
+    <div class="step-card">
+      <div class="step-title">STEP 4: Cockpit Schottky Diode-OR Bus & Headlights</div>
+      <p>
+        Mount a small mini-breadboard inside the car interior. Wire each generator's positive lead through its own <strong>1N5819 Schottky diode</strong> (stripes pointing toward the supercapacitor). Connect the supercapacitor buffer directly to the front LED headlights through a small dashboard slide switch.
+      </p>
+    </div>
+
+    <h1>4. The 30-Second Live Demonstration (How to Win Competitions)</h1>
+    
+    <div class="highlight-box">
+      <strong>THE LIVE DEMO TRICK THAT WILL BLOW TFIC JUDGES & THE DSO AWAY:</strong><br>
+      1. Place the scale car on the judges' table with headlights OFF.<br>
+      2. Open the toy car's battery compartment and show that there are <strong>NO internal batteries</strong> installed!<br>
+      3. Push the car forward across the table (Kinetic) and touch a warm cup to the roof (Thermal).<br>
+      4. Flip the headlight switch $\longrightarrow$ <strong>THE BRIGHT LED HEADLIGHTS TURN ON AND STAY ILLUMINATED!</strong><br>
+      5. Tell the judges: <em>"Sir, this vehicle's headlights are powered 100% by ambient motion and heat. In a real electric vehicle, this saves 15% to 25% of the main traction battery!"</em>
+    </div>
+
+    <h2>Why This Beats a Real Car:</h2>
+    <ul>
+      <li><strong>100% Legal & Safe:</strong> Zero high-voltage risk, zero fuel or exhaust hazards, complies with all school and government competition safety rules.</li>
+      <li><strong>Completely Portable:</strong> Fits easily in your school bag; you can carry it into the DSO office, classrooms, and exhibition halls.</li>
+      <li><strong>Budget Friendly:</strong> An inexpensive toy car chassis costs ₹500–₹1,000, and all the electronics come right from your ATL lab!</li>
+    </ul>
+
+    <div style="margin-top: 30px; padding: 10px; background: #f1f5f9; border-radius: 6px; text-align: center; font-size: 8pt; color: #64748b;">
+      Project S.E.E.S. Scale Model Blueprint • Prepared by Durgam.Noushik, Narsimha, and B.Tejesh
+    </div>
+  </div>
+
+</body>
+</html>

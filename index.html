@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>S.E.E.S. — Self-Sustaining Energy System | Virtual Laboratory v2.0</title>
+  <!-- Tailwind CSS CDN with forms & typography -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js for High-Fidelity Multi-Channel Telemetry -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0f9ff',
+              100: '#e0f2fe',
+              400: '#38bdf8',
+              500: '#0ea5e9',
+              600: '#0284c7',
+              900: '#0c4a6e',
+              950: '#082f49',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    .animate-spin-fast { animation: spin 0.3s linear infinite; }
+    .animate-spin-med { animation: spin 0.8s linear infinite; }
+    .animate-spin-slow { animation: spin 2s linear infinite; }
+    .glass-panel {
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(51, 65, 85, 0.6);
+    }
+    input[type=range] { accent-color: #38bdf8; }
+    .pulse-glow {
+      box-shadow: 0 0 15px rgba(56, 189, 248, 0.4);
+    }
+
+    /* Continuous Flow Dash Animation for SVG Energy Streams */
+    @keyframes dashMove {
+      from { stroke-dashoffset: 24; }
+      to { stroke-dashoffset: 0; }
+    }
+    .flow-active-kin {
+      animation: dashMove 0.8s linear infinite;
+    }
+    .flow-active-therm {
+      animation: dashMove 1.2s linear infinite;
+    }
+    .flow-active-piezo {
+      animation: dashMove 0.6s linear infinite;
+    }
+    .flow-active-bus {
+      animation: dashMove 0.7s linear infinite;
+    }
+    .flow-active-load {
+      animation: dashMove 0.9s linear infinite;
+    }
+
+    /* Ambient Pulsing Glow Animations */
+    @keyframes ambientGlow {
+      0%, 100% { box-shadow: 0 0 15px rgba(14, 165, 233, 0.25); border-color: rgba(56, 189, 248, 0.4); }
+      50% { box-shadow: 0 0 28px rgba(14, 165, 233, 0.6); border-color: rgba(56, 189, 248, 0.8); }
+    }
+    .pulse-panel-active {
+      animation: ambientGlow 2.5s ease-in-out infinite;
+    }
+
+    /* Subtle Card Shimmer Hover */
+    .hover-card-float {
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .hover-card-float:hover {
+      transform: translateY(-2px);
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen p-3 md:p-6 font-sans antialiased selection:bg-sky-500 selection:text-white">
+
+  <!-- Top Navigation & Command Bar -->
+  <nav class="max-w-7xl mx-auto mb-4 glass-panel rounded-2xl px-5 py-3 flex flex-wrap items-center justify-between gap-4 shadow-xl">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-500 to-emerald-400 p-0.5 shadow-lg shadow-sky-500/20">
+        <div class="w-full h-full bg-slate-950 rounded-[10px] flex items-center justify-center font-black text-sky-400 tracking-wider">
+          SEES
+        </div>
+      </div>
+      <div>
+        <div class="flex items-center gap-2">
+          <span class="text-base font-extrabold text-white tracking-wide">PROJECT S.E.E.S.</span>
+          <span class="text-[10px] px-2 py-0.5 rounded-full bg-sky-500/10 text-sky-400 border border-sky-500/30 font-mono">v2.0 PRO</span>
+        </div>
+        <p class="text-xs text-slate-400 font-medium">Self-Sustaining Energy System &amp; Digital Twin Bench</p>
+      </div>
+    </div>
+
+    <!-- Navigation Links & System Controls -->
+    <div class="flex items-center flex-wrap gap-2 text-xs">
+      <a href="index.html" class="px-3 py-1.5 font-semibold rounded-xl bg-sky-500 text-slate-950 shadow-md transition">
+        Virtual Lab
+      </a>
+      <a href="sees_virtual_lab.html" class="px-3 py-1.5 font-medium rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white transition">
+        Digital Twin
+      </a>
+      <a href="master_project_document.html" class="px-3 py-1.5 font-medium rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white transition">
+        Master Dossier
+      </a>
+      <a href="sees_architecture_specification.html" class="px-3 py-1.5 font-medium rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white transition">
+        Architecture Spec
+      </a>
+      <a href="sees_rc_car_prototype_guide.html" class="px-3 py-1.5 font-medium rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white transition">
+        RC Prototype
+      </a>
+      <a href="video.html" class="px-3 py-1.5 font-semibold rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-md transition flex items-center gap-1.5">
+        <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+        Video Showcase
+      </a>
+
+      <!-- Quick Export Actions -->
+      <div class="h-5 w-px bg-slate-700 mx-1"></div>
+      <button onclick="exportCSV()" class="px-2.5 py-1.5 font-medium rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-400 border border-emerald-500/20 transition flex items-center gap-1">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+        CSV
+      </button>
+      <button onclick="exportJSON()" class="px-2.5 py-1.5 font-medium rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-400 border border-amber-500/20 transition flex items-center gap-1">
+        JSON
+      </button>
+    </div>
+  </nav>
+
+  <!-- Connected Ecosystem & Deployed Web Portals -->
+  <section class="max-w-7xl mx-auto mb-5 glass-panel rounded-2xl p-4 shadow-xl">
+    <div class="flex items-center justify-between mb-3 border-b border-slate-800/80 pb-2">
+      <div class="flex items-center gap-2">
+        <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+        <h2 class="text-xs font-bold text-slate-200 uppercase tracking-widest">Connected Vercel Web Ecosystem &amp; Portals</h2>
+      </div>
+      <span class="text-[11px] text-slate-400 font-mono">Team: royalcore-technologies</span>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+      <!-- Portal 1: S.E.E.S. Production Lab -->
+      <a href="https://sees-virtual-lab.vercel.app" target="_blank" rel="noopener noreferrer" class="group hover-card-float p-3.5 rounded-xl bg-slate-900/90 border border-sky-500/30 hover:border-sky-400 hover:shadow-lg hover:shadow-sky-500/20 transition-all flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between mb-1.5">
+            <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-sky-500/20 text-sky-400 border border-sky-500/30 font-mono">LIVE PRODUCTION</span>
+            <svg class="w-3.5 h-3.5 text-slate-500 group-hover:text-sky-400 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+          </div>
+          <h3 class="text-xs font-bold text-white group-hover:text-sky-300 transition">S.E.E.S. Virtual Lab</h3>
+          <p class="text-[11px] text-slate-400 mt-0.5 leading-snug">Multi-channel energy recovery testbed &amp; hardware twin.</p>
+        </div>
+        <div class="mt-2.5 pt-2 border-t border-slate-800/80 flex items-center justify-between text-[10px] text-slate-500 font-mono">
+          <span>sees-virtual-lab.vercel.app</span>
+          <span class="text-emerald-400 font-semibold flex items-center gap-1">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+            Ready
+          </span>
+        </div>
+      </a>
+
+      <!-- Portal 2: Durgam Noushik Portfolio -->
+      <a href="https://durgamnoushik.vercel.app" target="_blank" rel="noopener noreferrer" class="group hover-card-float p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 hover:border-purple-400 hover:shadow-lg hover:shadow-purple-500/20 transition-all flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between mb-1.5">
+            <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-purple-500/20 text-purple-300 border border-purple-500/30 font-mono">LEAD INNOVATOR</span>
+            <svg class="w-3.5 h-3.5 text-slate-500 group-hover:text-purple-400 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+          </div>
+          <h3 class="text-xs font-bold text-white group-hover:text-purple-300 transition">Durgam Noushik Portal</h3>
+          <p class="text-[11px] text-slate-400 mt-0.5 leading-snug">Personal portfolio, patents, inventions &amp; research.</p>
+        </div>
+        <div class="mt-2.5 pt-2 border-t border-slate-800/80 flex items-center justify-between text-[10px] text-slate-500 font-mono">
+          <span>durgamnoushik.vercel.app</span>
+          <span class="text-emerald-400 font-semibold flex items-center gap-1">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+            Ready
+          </span>
+        </div>
+      </a>
+
+      <!-- Portal 3: Royal Core AI Platform -->
+      <a href="https://royal-core-ai.vercel.app" target="_blank" rel="noopener noreferrer" class="group hover-card-float p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 hover:border-amber-400 hover:shadow-lg hover:shadow-amber-500/20 transition-all flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between mb-1.5">
+            <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/30 font-mono">AI PLATFORM</span>
+            <svg class="w-3.5 h-3.5 text-slate-500 group-hover:text-amber-400 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+          </div>
+          <h3 class="text-xs font-bold text-white group-hover:text-amber-300 transition">Royal Core AI</h3>
+          <p class="text-[11px] text-slate-400 mt-0.5 leading-snug">Autonomous intelligent systems and deep computing hub.</p>
+        </div>
+        <div class="mt-2.5 pt-2 border-t border-slate-800/80 flex items-center justify-between text-[10px] text-slate-500 font-mono">
+          <span>royal-core-ai.vercel.app</span>
+          <span class="text-emerald-400 font-semibold flex items-center gap-1">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+            Ready
+          </span>
+        </div>
+      </a>
+
+      <!-- Portal 4: Rhythunestham Platform -->
+      <a href="https://rhythunestham.vercel.app" target="_blank" rel="noopener noreferrer" class="group hover-card-float p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 hover:border-emerald-400 hover:shadow-lg hover:shadow-emerald-500/20 transition-all flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between mb-1.5">
+            <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-mono">COMMUNITY / AGRI</span>
+            <svg class="w-3.5 h-3.5 text-slate-500 group-hover:text-emerald-400 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+          </div>
+          <h3 class="text-xs font-bold text-white group-hover:text-emerald-300 transition">Rhythunestham</h3>
+          <p class="text-[11px] text-slate-400 mt-0.5 leading-snug">Agritech &amp; rural support digital infrastructure platform.</p>
+        </div>
+        <div class="mt-2.5 pt-2 border-t border-slate-800/80 flex items-center justify-between text-[10px] text-slate-500 font-mono">
+          <span>rhythunestham.vercel.app</span>
+          <span class="text-emerald-400 font-semibold flex items-center gap-1">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+            Ready
+          </span>
+        </div>
+      </a>
+    </div>
+  </section>
+
+  <!-- Interactive SVG Energy Architecture Flowchart -->
+  <section class="max-w-7xl mx-auto mb-5 glass-panel rounded-2xl p-4 shadow-xl overflow-hidden relative">
+    <div class="flex items-center justify-between mb-2">
+      <div class="flex items-center gap-2">
+        <span class="w-2.5 h-2.5 rounded-full bg-sky-400 animate-pulse"></span>
+        <h2 class="text-xs font-bold text-slate-300 uppercase tracking-widest">Active Multi-Channel MISO Architecture Flow</h2>
+      </div>
+      <span class="text-[11px] text-slate-400 font-mono">Dynamic Power Direction &amp; Decoupling Bus</span>
+    </div>
+
+    <div class="w-full overflow-x-auto">
+      <svg viewBox="0 0 960 140" class="w-full min-w-[700px] h-32 select-none">
+        <defs>
+          <linearGradient id="flowSky" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.8"/>
+            <stop offset="100%" stop-color="#38bdf8" stop-opacity="0.2"/>
+          </linearGradient>
+          <linearGradient id="flowAmber" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#fbbf24" stop-opacity="0.8"/>
+            <stop offset="100%" stop-color="#fbbf24" stop-opacity="0.2"/>
+          </linearGradient>
+          <linearGradient id="flowPurple" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#c084fc" stop-opacity="0.8"/>
+            <stop offset="100%" stop-color="#c084fc" stop-opacity="0.2"/>
+          </linearGradient>
+        </defs>
+
+        <!-- Source 1: Kinetic Flywheel -->
+        <g transform="translate(10, 10)">
+          <rect width="180" height="34" rx="8" fill="#0f172a" stroke="#0284c7" stroke-width="1.5"/>
+          <circle cx="22" cy="17" r="7" fill="#38bdf8"/>
+          <text x="36" y="21" fill="#e2e8f0" font-size="11" font-weight="bold">1. Kinetic DC Flywheel</text>
+          <path d="M 190 17 L 340 55" stroke="#38bdf8" stroke-width="2.5" stroke-dasharray="6 4" fill="none" id="flowPathKin"/>
+        </g>
+
+        <!-- Source 2: Thermal Seebeck -->
+        <g transform="translate(10, 52)">
+          <rect width="180" height="34" rx="8" fill="#0f172a" stroke="#d97706" stroke-width="1.5"/>
+          <circle cx="22" cy="17" r="7" fill="#fbbf24"/>
+          <text x="36" y="21" fill="#e2e8f0" font-size="11" font-weight="bold">2. Seebeck TEC1-12706</text>
+          <path d="M 190 17 L 340 17" stroke="#fbbf24" stroke-width="2.5" stroke-dasharray="6 4" fill="none" id="flowPathTherm"/>
+        </g>
+
+        <!-- Source 3: Piezoelectric -->
+        <g transform="translate(10, 94)">
+          <rect width="180" height="34" rx="8" fill="#0f172a" stroke="#9333ea" stroke-width="1.5"/>
+          <circle cx="22" cy="17" r="7" fill="#c084fc"/>
+          <text x="36" y="21" fill="#e2e8f0" font-size="11" font-weight="bold">3. Piezo Cantilever</text>
+          <path d="M 190 17 L 340 -20" stroke="#c084fc" stroke-width="2.5" stroke-dasharray="6 4" fill="none" id="flowPathPiezo"/>
+        </g>
+
+        <!-- Layer 3: Diode-OR Combining Bus -->
+        <g transform="translate(350, 20)">
+          <rect width="190" height="98" rx="12" fill="#030712" stroke="#334155" stroke-width="2" id="flowRectBus"/>
+          <text x="95" y="24" text-anchor="middle" fill="#38bdf8" font-size="11" font-weight="bold">LAYER 3: MISO BUS</text>
+          <text x="95" y="42" text-anchor="middle" fill="#64748b" font-size="10">Schottky Barrier (1N5819)</text>
+          <rect x="25" y="52" width="140" height="28" rx="6" fill="#1e293b"/>
+          <text x="95" y="70" text-anchor="middle" fill="#34d399" font-size="12" font-family="monospace" font-weight="bold" id="flowSvgBusVolt">0.00 V</text>
+          <!-- Forward bus connection -->
+          <path d="M 190 49 L 260 49" stroke="#34d399" stroke-width="3" stroke-dasharray="6 4" fill="none" id="flowPathBus"/>
+        </g>
+
+        <!-- Layer 4: Supercapacitor Buffer -->
+        <g transform="translate(615, 20)">
+          <rect width="170" height="98" rx="12" fill="#030712" stroke="#10b981" stroke-width="2" id="flowRectCap"/>
+          <text x="85" y="24" text-anchor="middle" fill="#34d399" font-size="11" font-weight="bold">LAYER 4: SUPERCAP</text>
+          <text x="85" y="42" text-anchor="middle" fill="#64748b" font-size="10">1.0F / 5.5V Buffer</text>
+          <rect x="20" y="52" width="130" height="28" rx="6" fill="#1e293b"/>
+          <text x="85" y="70" text-anchor="middle" fill="#38bdf8" font-size="12" font-family="monospace" font-weight="bold" id="flowSvgCapVolt">0.00 V</text>
+          <!-- Path to load -->
+          <path d="M 170 49 L 230 49" stroke="#f59e0b" stroke-width="2.5" stroke-dasharray="5 4" fill="none" id="flowPathLoad"/>
+        </g>
+
+        <!-- Auxiliary Load -->
+        <g transform="translate(850, 32)">
+          <rect width="100" height="74" rx="10" fill="#0f172a" stroke="#f59e0b" stroke-width="1.5"/>
+          <text x="50" y="26" text-anchor="middle" fill="#f59e0b" font-size="10" font-weight="bold">AUX LOAD</text>
+          <text x="50" y="44" text-anchor="middle" fill="#94a3b8" font-size="9">Fan &amp; LED</text>
+          <text x="50" y="60" text-anchor="middle" fill="#cbd5e1" font-size="9" font-family="monospace" id="flowSvgAuxStatus">OFF</text>
+        </g>
+      </svg>
+    </div>
+  </section>
+
+  <!-- Main Workstation Layout -->
+  <main class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-5">
+
+    <!-- LEFT COLUMN: Three Harvester Benches (5 cols) -->
+    <section class="lg:col-span-5 space-y-4">
+
+      <!-- Module 1: Kinetic DC Flywheel Bench -->
+      <div class="glass-panel rounded-2xl p-4 shadow-lg relative overflow-hidden">
+        <div class="flex justify-between items-center mb-3">
+          <div class="flex items-center gap-2">
+            <span class="w-3 h-3 rounded-full bg-sky-400"></span>
+            <h3 class="text-sm font-bold text-white uppercase tracking-wider">1. Kinetic DC Flywheel Rig</h3>
+          </div>
+          <span class="text-xs font-mono text-sky-400 font-semibold" id="labelMotorRpm">0 RPM</span>
+        </div>
+
+        <div class="flex items-center gap-4">
+          <!-- Animated Flywheel Visual -->
+          <div class="relative w-20 h-20 bg-slate-950 rounded-full border-2 border-slate-700 flex items-center justify-center shrink-0 shadow-inner">
+            <div id="flywheelVisual" class="w-16 h-16 rounded-full border-4 border-dashed border-sky-400 flex items-center justify-center transition-all duration-200">
+              <div class="w-4 h-4 rounded-full bg-sky-500"></div>
+            </div>
+            <span class="absolute text-[9px] font-bold text-slate-400">12V GEN</span>
+          </div>
+
+          <!-- Controls -->
+          <div class="flex-1 space-y-2 text-xs">
+            <div class="flex gap-2">
+              <button onclick="spinFlywheel(3500)" class="flex-1 py-1.5 bg-sky-600 hover:bg-sky-500 text-white font-semibold rounded-xl shadow transition">
+                ⚡ Spin 3500 RPM
+              </button>
+              <button onclick="spinFlywheel(1600)" class="flex-1 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium rounded-xl border border-slate-700 transition">
+                Spin Med
+              </button>
+            </div>
+            <div class="flex justify-between text-slate-400 bg-slate-950/60 p-2 rounded-xl">
+              <span>Back-EMF: <b class="text-sky-400 font-mono" id="outVoltKinetic">0.00 V</b></span>
+              <span>Current: <b class="text-sky-400 font-mono" id="outCurrKinetic">0.0 mA</b></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Module 2: Thermoelectric Seebeck Module (TEC1-12706) -->
+      <div class="glass-panel rounded-2xl p-4 shadow-lg">
+        <div class="flex justify-between items-center mb-3">
+          <div class="flex items-center gap-2">
+            <span class="w-3 h-3 rounded-full bg-amber-400"></span>
+            <h3 class="text-sm font-bold text-white uppercase tracking-wider">2. Seebeck Thermal Rig (TEC1)</h3>
+          </div>
+          <span class="text-xs font-mono text-amber-400 font-semibold" id="labelDeltaT">&Delta;T: 60.0&deg;C</span>
+        </div>
+
+        <div class="space-y-3 text-xs">
+          <div>
+            <div class="flex justify-between text-slate-300 mb-1">
+              <span>Hot Side (Exhaust / Reservoir):</span>
+              <span class="font-mono text-rose-400 font-bold" id="valHotTemp">85&deg;C</span>
+            </div>
+            <input type="range" id="sliderHotTemp" min="25" max="110" step="1" value="85" class="w-full h-1.5 bg-slate-800 rounded cursor-pointer">
+          </div>
+
+          <div>
+            <div class="flex justify-between text-slate-300 mb-1">
+              <span>Cold Side (Ambient / Heat Sink):</span>
+              <span class="font-mono text-blue-400 font-bold" id="valColdTemp">25&deg;C</span>
+            </div>
+            <input type="range" id="sliderColdTemp" min="0" max="45" step="1" value="25" class="w-full h-1.5 bg-slate-800 rounded cursor-pointer">
+          </div>
+
+          <div class="p-2.5 bg-slate-950/70 rounded-xl border border-slate-800 flex justify-between items-center">
+            <span class="text-slate-400">Seebeck Output (Non-linear &alpha;):</span>
+            <div class="text-right">
+              <span class="text-amber-400 font-mono font-bold" id="outVoltThermal">0.00 V</span>
+              <span class="text-slate-500 font-mono text-[10px] ml-1">@ <span id="outCurrThermal">0.0 mA</span></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Module 3: Piezoelectric Cantilever Harvester -->
+      <div class="glass-panel rounded-2xl p-4 shadow-lg">
+        <div class="flex justify-between items-center mb-3">
+          <div class="flex items-center gap-2">
+            <span class="w-3 h-3 rounded-full bg-purple-400"></span>
+            <h3 class="text-sm font-bold text-white uppercase tracking-wider">3. Piezo Vibration Cantilever</h3>
+          </div>
+          <span class="text-xs font-mono text-purple-400 font-semibold" id="labelPiezoState">Idle</span>
+        </div>
+
+        <div class="flex items-center gap-4">
+          <div class="w-20 h-20 bg-slate-950 rounded-xl border border-slate-800 flex items-center justify-center shrink-0 relative overflow-hidden">
+            <div id="piezoBeamVisual" class="w-14 h-2 bg-purple-500 rounded transform origin-left transition-transform duration-100 shadow-md shadow-purple-500/50"></div>
+            <div class="absolute right-2 w-3.5 h-3.5 bg-amber-400 rounded-sm" title="Tip Mass"></div>
+          </div>
+
+          <div class="flex-1 space-y-2 text-xs">
+            <button onclick="flickPiezo()" class="w-full py-1.5 bg-purple-600 hover:bg-purple-500 text-white font-semibold rounded-xl shadow transition">
+              💥 Flick / Resonate Beam (28.4 Hz)
+            </button>
+            <div class="flex justify-between text-slate-400 bg-slate-950/60 p-2 rounded-xl">
+              <span>Bridge Out: <b class="text-purple-400 font-mono" id="outVoltPiezo">0.00 V</b></span>
+              <span>Current: <b class="text-purple-400 font-mono" id="outCurrPiezo">0.0 mA</b></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Power Conditioning Status (Layer 3) -->
+      <div class="glass-panel rounded-2xl p-4 text-xs space-y-2">
+        <div class="flex justify-between items-center">
+          <span class="font-bold text-slate-300">Layer 3: Diode-OR Combining Bus</span>
+          <span class="px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-400 border border-emerald-800 font-mono text-[11px]">Schottky 1N5819</span>
+        </div>
+        <p class="text-slate-400 leading-relaxed text-[11px]">
+          Reverse current backfeeding is eliminated by independent low-drop Schottky barriers (<span class="font-mono text-slate-200">V_f &asymp; 0.22V</span>). Highest potential channels forward-bias the common storage bus.
+        </p>
+      </div>
+
+    </section>
+
+    <!-- RIGHT COLUMN: Multi-Channel Telemetry Chart, Buffer Storage & Export (7 cols) -->
+    <section class="lg:col-span-7 space-y-4">
+
+      <!-- Multimeter Dashboard (Virtual DMMs) -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div class="glass-panel rounded-xl p-3 shadow">
+          <div class="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Bus Voltage</div>
+          <div class="text-lg font-bold font-mono text-sky-400" id="meterBusVolt">0.00 V</div>
+          <div class="text-[10px] text-slate-500">MISO Combined</div>
+        </div>
+
+        <div class="glass-panel rounded-xl p-3 shadow">
+          <div class="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Harvest Current</div>
+          <div class="text-lg font-bold font-mono text-emerald-400" id="meterHarvestCurrent">0.0 mA</div>
+          <div class="text-[10px] text-slate-500">Total Charging</div>
+        </div>
+
+        <div class="glass-panel rounded-xl p-3 shadow">
+          <div class="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Gross Power</div>
+          <div class="text-lg font-bold font-mono text-amber-300" id="meterHarvestPower">0.0 mW</div>
+          <div class="text-[10px] text-slate-500">P = V &times; I</div>
+        </div>
+
+        <div class="glass-panel rounded-xl p-3 shadow">
+          <div class="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Accumulated</div>
+          <div class="text-lg font-bold font-mono text-purple-300" id="meterTotalEnergy">0.000 mWh</div>
+          <div class="text-[10px] text-slate-500" id="meterTotalJoules">0.00 J</div>
+        </div>
+      </div>
+
+      <!-- Buffer Storage & Auxiliary Load Workstation (Layer 4) -->
+      <div class="glass-panel rounded-2xl p-4 shadow-lg">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+          <div>
+            <h3 class="text-sm font-bold text-white flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+              Layer 4: Supercapacitor Buffer &amp; Auxiliary Decoupled Load
+            </h3>
+            <p class="text-[11px] text-slate-400">5.5V / 1.0 Farad Buffer Capacitor (with modeled ESR &amp; leakage)</p>
+          </div>
+
+          <div class="flex items-center gap-2 bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800">
+            <span class="text-xs font-medium text-slate-300">Aux Load Switch:</span>
+            <button id="btnToggleLoad" onclick="toggleAuxLoad()" class="px-3 py-1 text-xs font-bold rounded-lg bg-slate-800 text-slate-400 border border-slate-700 transition">
+              OFF
+            </button>
+          </div>
+        </div>
+
+        <!-- Supercapacitor Charge Gauge -->
+        <div class="space-y-1.5 mb-4">
+          <div class="flex justify-between text-xs font-mono">
+            <span class="text-slate-400">Buffer Potential (SoC):</span>
+            <span class="text-emerald-400 font-bold" id="labelCapVolt">0.00 V / 3.30 V baseline</span>
+          </div>
+          <div class="w-full h-3 bg-slate-950 rounded-full overflow-hidden p-0.5 border border-slate-800">
+            <div id="barCapSoC" class="bg-gradient-to-r from-sky-500 via-emerald-400 to-amber-400 h-full rounded-full transition-all duration-100" style="width: 0%;"></div>
+          </div>
+        </div>
+
+        <!-- Auxiliary Load Visual Status (Fan & LED) -->
+        <div class="grid grid-cols-2 gap-3 pt-3 border-t border-slate-800">
+          <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800 flex items-center gap-3">
+            <div id="ledIndicator" class="w-6 h-6 rounded-full bg-slate-800 border border-slate-700 transition-all shadow"></div>
+            <div>
+              <span class="text-xs font-bold text-slate-200 block">Auxiliary 5V LED</span>
+              <span class="text-[10px] text-slate-500" id="labelLedStatus">Disconnected</span>
+            </div>
+          </div>
+
+          <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800 flex items-center gap-3">
+            <div id="fanVisual" class="w-6 h-6 text-slate-600 transition-all flex items-center justify-center">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+            </div>
+            <div>
+              <span class="text-xs font-bold text-slate-200 block">Auxiliary Cooling Fan</span>
+              <span class="text-[10px] text-slate-500" id="labelFanStatus">0 RPM (Stopped)</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- High-Fidelity Chart.js Telemetry Plotter -->
+      <div class="glass-panel rounded-2xl p-4 shadow-lg">
+        <div class="flex justify-between items-center mb-2">
+          <span class="text-xs font-bold text-slate-200">High-Resolution Multi-Channel Telemetry Stream</span>
+          <span class="text-[11px] font-mono text-emerald-400">10 Hz Real-Time Sampling</span>
+        </div>
+        <div class="bg-slate-950 rounded-xl p-3 border border-slate-800 h-52">
+          <canvas id="chartTelemetry" class="w-full h-full"></canvas>
+        </div>
+      </div>
+
+      <!-- Empirical Test Evidence Table & Controls -->
+      <div class="glass-panel rounded-2xl p-4 shadow-lg">
+        <div class="flex justify-between items-center mb-3">
+          <h3 class="text-xs font-bold text-white uppercase tracking-wider">
+            Empirical Test Evidence Table
+          </h3>
+          <div class="flex gap-2">
+            <button onclick="runAutoLabExperiment()" class="px-2.5 py-1 text-[11px] font-semibold rounded-lg bg-sky-500 hover:bg-sky-400 text-slate-950 transition">
+              ⚡ Run 4-Step Auto Sequence
+            </button>
+            <button onclick="logCurrentPoint()" class="px-2.5 py-1 text-[11px] font-semibold rounded-lg bg-slate-800 hover:bg-slate-700 text-sky-400 border border-slate-700 transition">
+              + Log Sample
+            </button>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto max-h-48">
+          <table class="w-full text-left text-xs font-mono" id="labTable">
+            <thead class="bg-slate-950/80 text-slate-400 border-b border-slate-800 text-[11px] sticky top-0 backdrop-blur">
+              <tr>
+                <th class="p-2">Test Run</th>
+                <th class="p-2">Active Source(s)</th>
+                <th class="p-2">Bus V</th>
+                <th class="p-2">Curr (mA)</th>
+                <th class="p-2">Power (mW)</th>
+                <th class="p-2">Capacitor</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800/60 text-slate-300 text-[11px]" id="labTableBody">
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </section>
+  </main>
+
+  <footer class="max-w-7xl mx-auto mt-6 text-center text-xs text-slate-500 pb-8">
+    Project S.E.E.S. &bull; Lead Innovator: Durgam.Noushik &bull; Hardware: Narsimha (ATL) &bull; Docs: B.Tejesh &bull; Patent-Ready Simulation Suite v2.0
+  </footer>
+
+  <!-- Simulation JavaScript & Chart Integration -->
+  <script>
+    let motorRpm = 0;
+    let hotTemp = 85;
+    let coldTemp = 25;
+    let piezoEnergy = 0;
+    let capVoltage = 0.0;
+    const CAPACITANCE = 1.0;
+    let auxLoadOn = false;
+    let accumulatedMWh = 0;
+    let manualTestCount = 1;
+
+    // Telemetry Telemetry Log for CSV/JSON Export
+    const telemetryHistory = [];
+
+    // DOM Elements
+    const labelMotorRpm = document.getElementById('labelMotorRpm');
+    const flywheelVisual = document.getElementById('flywheelVisual');
+    const outVoltKinetic = document.getElementById('outVoltKinetic');
+    const outCurrKinetic = document.getElementById('outCurrKinetic');
+
+    const sliderHotTemp = document.getElementById('sliderHotTemp');
+    const sliderColdTemp = document.getElementById('sliderColdTemp');
+    const valHotTemp = document.getElementById('valHotTemp');
+    const valColdTemp = document.getElementById('valColdTemp');
+    const labelDeltaT = document.getElementById('labelDeltaT');
+    const outVoltThermal = document.getElementById('outVoltThermal');
+    const outCurrThermal = document.getElementById('outCurrThermal');
+
+    const piezoBeamVisual = document.getElementById('piezoBeamVisual');
+    const labelPiezoState = document.getElementById('labelPiezoState');
+    const outVoltPiezo = document.getElementById('outVoltPiezo');
+    const outCurrPiezo = document.getElementById('outCurrPiezo');
+
+    const meterBusVolt = document.getElementById('meterBusVolt');
+    const meterHarvestCurrent = document.getElementById('meterHarvestCurrent');
+    const meterHarvestPower = document.getElementById('meterHarvestPower');
+    const meterTotalEnergy = document.getElementById('meterTotalEnergy');
+    const meterTotalJoules = document.getElementById('meterTotalJoules');
+
+    const btnToggleLoad = document.getElementById('btnToggleLoad');
+    const labelCapVolt = document.getElementById('labelCapVolt');
+    const barCapSoC = document.getElementById('barCapSoC');
+    const ledIndicator = document.getElementById('ledIndicator');
+    const labelLedStatus = document.getElementById('labelLedStatus');
+    const fanVisual = document.getElementById('fanVisual');
+    const labelFanStatus = document.getElementById('labelFanStatus');
+    const labTableBody = document.getElementById('labTableBody');
+
+    const flowSvgBusVolt = document.getElementById('flowSvgBusVolt');
+    const flowSvgCapVolt = document.getElementById('flowSvgCapVolt');
+    const flowSvgAuxStatus = document.getElementById('flowSvgAuxStatus');
+
+    const flowPathKin = document.getElementById('flowPathKin');
+    const flowPathTherm = document.getElementById('flowPathTherm');
+    const flowPathPiezo = document.getElementById('flowPathPiezo');
+    const flowPathBus = document.getElementById('flowPathBus');
+    const flowPathLoad = document.getElementById('flowPathLoad');
+    const flowRectBus = document.getElementById('flowRectBus');
+    const flowRectCap = document.getElementById('flowRectCap');
+
+    // Chart.js Setup
+    const chartCtx = document.getElementById('chartTelemetry').getContext('2d');
+    const telemetryChart = new Chart(chartCtx, {
+      type: 'line',
+      data: {
+        labels: Array(30).fill(''),
+        datasets: [
+          {
+            label: 'Capacitor Voltage (V)',
+            data: Array(30).fill(0),
+            borderColor: '#34d399',
+            backgroundColor: 'rgba(52, 211, 153, 0.1)',
+            borderWidth: 2,
+            tension: 0.3,
+            yAxisID: 'y'
+          },
+          {
+            label: 'Bus Power (mW)',
+            data: Array(30).fill(0),
+            borderColor: '#fbbf24',
+            backgroundColor: 'rgba(251, 191, 36, 0.1)',
+            borderWidth: 1.5,
+            tension: 0.3,
+            yAxisID: 'y1'
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: false,
+        scales: {
+          x: { display: false },
+          y: {
+            type: 'linear',
+            position: 'left',
+            min: 0,
+            max: 5,
+            grid: { color: 'rgba(51, 65, 85, 0.4)' },
+            ticks: { color: '#94a3b8', font: { size: 10 } }
+          },
+          y1: {
+            type: 'linear',
+            position: 'right',
+            min: 0,
+            max: 300,
+            grid: { display: false },
+            ticks: { color: '#fbbf24', font: { size: 10 } }
+          }
+        },
+        plugins: {
+          legend: {
+            labels: { color: '#cbd5e1', font: { size: 10 } }
+          }
+        }
+      }
+    });
+
+    function spinFlywheel(rpm) {
+      motorRpm = rpm;
+    }
+
+    function flickPiezo() {
+      piezoEnergy = 2.8;
+      labelPiezoState.textContent = 'Resonating (28.4 Hz)';
+      labelPiezoState.className = 'text-xs font-mono text-purple-400 font-bold';
+      piezoBeamVisual.style.transform = 'rotate(-18deg)';
+      setTimeout(() => { piezoBeamVisual.style.transform = 'rotate(12deg)'; }, 80);
+      setTimeout(() => { piezoBeamVisual.style.transform = 'rotate(-6deg)'; }, 160);
+      setTimeout(() => { piezoBeamVisual.style.transform = 'rotate(0deg)'; }, 240);
+    }
+
+    function toggleAuxLoad() {
+      auxLoadOn = !auxLoadOn;
+      if (auxLoadOn) {
+        btnToggleLoad.textContent = 'ON';
+        btnToggleLoad.className = 'px-3 py-1 text-xs font-bold rounded-lg bg-emerald-600 text-white shadow';
+        flowSvgAuxStatus.textContent = 'ACTIVE (5V)';
+        flowSvgAuxStatus.setAttribute('fill', '#34d399');
+      } else {
+        btnToggleLoad.textContent = 'OFF';
+        btnToggleLoad.className = 'px-3 py-1 text-xs font-bold rounded-lg bg-slate-800 text-slate-400 border border-slate-700';
+        flowSvgAuxStatus.textContent = 'OFF';
+        flowSvgAuxStatus.setAttribute('fill', '#cbd5e1');
+      }
+    }
+
+    sliderHotTemp.addEventListener('input', (e) => {
+      hotTemp = parseFloat(e.target.value);
+      valHotTemp.textContent = `${hotTemp}°C`;
+    });
+    sliderColdTemp.addEventListener('input', (e) => {
+      coldTemp = parseFloat(e.target.value);
+      valColdTemp.textContent = `${coldTemp}°C`;
+    });
+
+    // 10 Hz Simulation Loop (Numerical Integration)
+    setInterval(() => {
+      const dt = 0.1;
+
+      // 1. Kinetic Module Physics (Deceleration & Back-EMF)
+      if (motorRpm > 0) {
+        motorRpm = Math.max(0, motorRpm - (180 * dt) - (motorRpm * 0.12 * dt));
+      }
+      labelMotorRpm.textContent = `${Math.round(motorRpm)} RPM`;
+
+      const v_kin_raw = (motorRpm / 3500) * 4.8;
+      const v_kin = Math.max(0, v_kin_raw - 0.22);
+      const i_kin = v_kin > 0 ? (v_kin / 28) * 1000 : 0;
+      outVoltKinetic.textContent = `${v_kin.toFixed(2)} V`;
+      outCurrKinetic.textContent = `${i_kin.toFixed(1)} mA`;
+
+      if (motorRpm > 2000) flywheelVisual.className = "w-16 h-16 rounded-full border-4 border-dashed border-sky-400 flex items-center justify-center animate-spin-fast";
+      else if (motorRpm > 600) flywheelVisual.className = "w-16 h-16 rounded-full border-4 border-dashed border-sky-400 flex items-center justify-center animate-spin-med";
+      else if (motorRpm > 50) flywheelVisual.className = "w-16 h-16 rounded-full border-4 border-dashed border-sky-400 flex items-center justify-center animate-spin-slow";
+      else flywheelVisual.className = "w-16 h-16 rounded-full border-4 border-dashed border-slate-600 flex items-center justify-center";
+
+      // 2. Thermoelectric Module Physics (Seebeck)
+      const deltaT = Math.max(0, hotTemp - coldTemp);
+      labelDeltaT.textContent = `ΔT: ${deltaT.toFixed(1)}°C`;
+      const avgT_K = ((hotTemp + coldTemp) / 2.0) + 273.15;
+      const effective_alpha = 0.038 + (avgT_K - 298.15) * 0.00012;
+      const v_therm_raw = deltaT * effective_alpha;
+      const v_therm = Math.max(0, v_therm_raw - 0.22);
+      const i_therm = v_therm > 0 ? (v_therm / 24) * 1000 : 0;
+      outVoltThermal.textContent = `${v_therm.toFixed(2)} V`;
+      outCurrThermal.textContent = `${i_therm.toFixed(1)} mA`;
+
+      // 3. Piezoelectric Vibration Physics
+      if (piezoEnergy > 0.02) {
+        piezoEnergy *= 0.88;
+      } else {
+        piezoEnergy = 0;
+        labelPiezoState.textContent = 'Idle';
+        labelPiezoState.className = 'text-xs font-mono text-slate-500 font-semibold';
+      }
+      const v_piezo_bridge = Math.max(0, piezoEnergy - 0.35);
+      const v_piezo = Math.max(0, v_piezo_bridge - 0.22);
+      const i_piezo = v_piezo > 0 ? (v_piezo / 450) * 1000 : 0;
+      outVoltPiezo.textContent = `${v_piezo.toFixed(2)} V`;
+      outCurrPiezo.textContent = `${i_piezo.toFixed(2)} mA`;
+
+      // 4. MISO Bus Combining
+      const busVoltage = Math.max(v_kin, v_therm, v_piezo);
+      let totalCurrentMA = 0;
+      if (v_kin >= Math.max(0.05, busVoltage - 0.08)) totalCurrentMA += i_kin;
+      if (v_therm >= Math.max(0.05, busVoltage - 0.08)) totalCurrentMA += i_therm;
+      if (v_piezo >= Math.max(0.05, busVoltage - 0.08)) totalCurrentMA += i_piezo;
+
+      const totalPowerMW = busVoltage * totalCurrentMA;
+      accumulatedMWh += (totalPowerMW / 1000) * (dt / 3600);
+
+      // 5. Layer 4 Supercapacitor Integration
+      let i_charge_A = 0;
+      if (busVoltage > capVoltage) {
+        i_charge_A = (totalCurrentMA / 1000);
+      }
+
+      let i_load_A = 0;
+      if (auxLoadOn && capVoltage >= 1.2) {
+        i_load_A = 0.055 * (1.5 / Math.max(1.0, capVoltage));
+      }
+
+      const dV = ((i_charge_A - i_load_A) * dt) / CAPACITANCE;
+      capVoltage = Math.max(0.0, Math.min(5.0, capVoltage + dV));
+
+      // Telemetry UI Updates
+      meterBusVolt.textContent = `${busVoltage.toFixed(2)} V`;
+      meterHarvestCurrent.textContent = `${totalCurrentMA.toFixed(1)} mA`;
+      meterHarvestPower.textContent = `${totalPowerMW.toFixed(1)} mW`;
+      meterTotalEnergy.textContent = `${accumulatedMWh.toFixed(4)} mWh`;
+      meterTotalJoules.textContent = `${(accumulatedMWh * 3.6).toFixed(2)} J`;
+
+      flowSvgBusVolt.textContent = `${busVoltage.toFixed(2)} V`;
+      flowSvgCapVolt.textContent = `${capVoltage.toFixed(2)} V`;
+
+      // Live SVG Energy Flow Line Animations
+      if (v_kin > 0.1 && motorRpm > 50) {
+        flowPathKin.classList.add('flow-active-kin');
+        flowPathKin.setAttribute('stroke', '#38bdf8');
+        flowPathKin.setAttribute('stroke-width', '2.5');
+      } else {
+        flowPathKin.classList.remove('flow-active-kin');
+        flowPathKin.setAttribute('stroke', '#1e293b');
+        flowPathKin.setAttribute('stroke-width', '1.5');
+      }
+
+      if (v_therm > 0.1 && deltaT > 5) {
+        flowPathTherm.classList.add('flow-active-therm');
+        flowPathTherm.setAttribute('stroke', '#fbbf24');
+        flowPathTherm.setAttribute('stroke-width', '2.5');
+      } else {
+        flowPathTherm.classList.remove('flow-active-therm');
+        flowPathTherm.setAttribute('stroke', '#1e293b');
+        flowPathTherm.setAttribute('stroke-width', '1.5');
+      }
+
+      if (v_piezo > 0.05) {
+        flowPathPiezo.classList.add('flow-active-piezo');
+        flowPathPiezo.setAttribute('stroke', '#c084fc');
+        flowPathPiezo.setAttribute('stroke-width', '2.5');
+      } else {
+        flowPathPiezo.classList.remove('flow-active-piezo');
+        flowPathPiezo.setAttribute('stroke', '#1e293b');
+        flowPathPiezo.setAttribute('stroke-width', '1.5');
+      }
+
+      if (busVoltage > 0.2) {
+        flowPathBus.classList.add('flow-active-bus');
+        flowPathBus.setAttribute('stroke', '#34d399');
+        flowRectBus.setAttribute('stroke', '#0ea5e9');
+      } else {
+        flowPathBus.classList.remove('flow-active-bus');
+        flowPathBus.setAttribute('stroke', '#1e293b');
+        flowRectBus.setAttribute('stroke', '#334155');
+      }
+
+      if (auxLoadOn && capVoltage >= 1.2) {
+        flowPathLoad.classList.add('flow-active-load');
+        flowPathLoad.setAttribute('stroke', '#f59e0b');
+        flowRectCap.setAttribute('stroke', '#10b981');
+      } else {
+        flowPathLoad.classList.remove('flow-active-load');
+        flowPathLoad.setAttribute('stroke', '#334155');
+        flowRectCap.setAttribute('stroke', '#1e293b');
+      }
+
+      labelCapVolt.textContent = `${capVoltage.toFixed(2)} V / 3.30 V baseline`;
+      const socPercent = (capVoltage / 3.3) * 100;
+      barCapSoC.style.width = `${Math.min(100, socPercent).toFixed(1)}%`;
+
+      if (auxLoadOn && capVoltage >= 1.2) {
+        ledIndicator.className = "w-6 h-6 rounded-full bg-emerald-400 border border-emerald-300 shadow-lg shadow-emerald-500/80";
+        labelLedStatus.textContent = 'Illuminated (Regenerative)';
+        labelLedStatus.className = 'text-[10px] text-emerald-400 font-semibold';
+
+        fanVisual.className = "w-6 h-6 text-sky-400 animate-spin-fast";
+        labelFanStatus.textContent = `${Math.round(capVoltage * 600)} RPM (Active)`;
+        labelFanStatus.className = 'text-[10px] text-sky-400 font-semibold';
+      } else {
+        ledIndicator.className = "w-6 h-6 rounded-full bg-slate-800 border border-slate-700";
+        labelLedStatus.textContent = auxLoadOn ? 'Undervoltage (< 1.2V)' : 'Switched OFF';
+        labelLedStatus.className = 'text-[10px] text-slate-500';
+
+        fanVisual.className = "w-6 h-6 text-slate-600";
+        labelFanStatus.textContent = '0 RPM (Stopped)';
+        labelFanStatus.className = 'text-[10px] text-slate-500';
+      }
+
+      // Update Chart
+      const labels = telemetryChart.data.labels;
+      const capData = telemetryChart.data.datasets[0].data;
+      const powerData = telemetryChart.data.datasets[1].data;
+
+      capData.shift();
+      capData.push(capVoltage);
+
+      powerData.shift();
+      powerData.push(totalPowerMW);
+
+      telemetryChart.update();
+
+      // Log point in-memory
+      telemetryHistory.push({
+        time: new Date().toISOString(),
+        motorRpm,
+        v_kin,
+        deltaT,
+        v_therm,
+        v_piezo,
+        busVoltage,
+        totalCurrentMA,
+        totalPowerMW,
+        capVoltage
+      });
+      if (telemetryHistory.length > 1000) telemetryHistory.shift();
+
+    }, 100);
+
+    function logCurrentPoint(labelOverride, sourcesOverride) {
+      const v = meterBusVolt.textContent;
+      const i = meterHarvestCurrent.textContent;
+      const p = meterHarvestPower.textContent;
+      const cap = `${capVoltage.toFixed(2)} V`;
+
+      let sources = sourcesOverride || [];
+      if (!sourcesOverride) {
+        if (motorRpm > 50) sources.push('Kinetic');
+        if (hotTemp - coldTemp > 10) sources.push('Thermal');
+        if (piezoEnergy > 0.05) sources.push('Vibration');
+        if (sources.length === 0) sources.push('Quiescent (None)');
+      }
+
+      const runTitle = labelOverride || `Sample #${manualTestCount++}`;
+
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td class="p-2 font-bold text-slate-200">${runTitle}</td>
+        <td class="p-2 text-sky-400">${Array.isArray(sources) ? sources.join(' + ') : sources}</td>
+        <td class="p-2 font-mono text-emerald-400">${v}</td>
+        <td class="p-2 font-mono">${i}</td>
+        <td class="p-2 font-mono text-amber-300 font-bold">${p}</td>
+        <td class="p-2 font-mono text-purple-300">${cap}</td>
+      `;
+      labTableBody.prepend(tr);
+    }
+
+    async function runAutoLabExperiment() {
+      labTableBody.innerHTML = '';
+      sliderHotTemp.value = 25; sliderHotTemp.dispatchEvent(new Event('input'));
+      sliderColdTemp.value = 25; sliderColdTemp.dispatchEvent(new Event('input'));
+      spinFlywheel(3500);
+      await new Promise(r => setTimeout(r, 600));
+      logCurrentPoint('Step 1 (Kinetic Only)', 'Kinetic DC Flywheel (Deceleration)');
+
+      motorRpm = 0;
+      sliderHotTemp.value = 85; sliderHotTemp.dispatchEvent(new Event('input'));
+      sliderColdTemp.value = 25; sliderColdTemp.dispatchEvent(new Event('input'));
+      await new Promise(r => setTimeout(r, 600));
+      logCurrentPoint('Step 2 (Thermal Only)', 'Seebeck Thermoelectric (ΔT=60°C)');
+
+      sliderHotTemp.value = 25; sliderHotTemp.dispatchEvent(new Event('input'));
+      flickPiezo();
+      await new Promise(r => setTimeout(r, 300));
+      logCurrentPoint('Step 3 (Vibration Only)', 'Piezoelectric Cantilever Beam');
+
+      sliderHotTemp.value = 85; sliderHotTemp.dispatchEvent(new Event('input'));
+      spinFlywheel(3500);
+      flickPiezo();
+      await new Promise(r => setTimeout(r, 500));
+      logCurrentPoint('Step 4 (All Combined MISO)', 'Kinetic + Seebeck + Piezoelectric');
+
+      setTimeout(() => {
+        capVoltage = 2.4;
+        if (!auxLoadOn) toggleAuxLoad();
+      }, 800);
+    }
+
+    // Export Functions
+    function exportCSV() {
+      if (telemetryHistory.length === 0) {
+        alert("No telemetry data recorded yet.");
+        return;
+      }
+      const headers = Object.keys(telemetryHistory[0]).join(",");
+      const rows = telemetryHistory.map(row => Object.values(row).join(",")).join("\n");
+      const blob = new Blob([headers + "\n" + rows], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `sees_telemetry_${Date.now()}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function exportJSON() {
+      if (telemetryHistory.length === 0) {
+        alert("No telemetry data recorded yet.");
+        return;
+      }
+      const blob = new Blob([JSON.stringify(telemetryHistory, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `sees_telemetry_${Date.now()}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    window.onload = () => {
+      runAutoLabExperiment();
+    };
+  </script>
+</body>
+</html>

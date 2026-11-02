@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>S.E.E.S. - Interactive Energy Harvesting Prototype</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --border: #334155;
+      --primary: #38bdf8;
+      --primary-hover: #0284c7;
+      --accent-thermal: #f59e0b;
+      --accent-piezo: #c084fc;
+      --accent-success: #10b981;
+      --accent-danger: #ef4444;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      padding: 20px;
+      line-height: 1.5;
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+
+    header {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 24px;
+      text-align: center;
+    }
+
+    header h1 {
+      font-size: 1.8rem;
+      margin-bottom: 8px;
+      color: #fff;
+    }
+
+    header p {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    @media (max-width: 768px) {
+      .grid-2 {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+
+    .card h2 {
+      font-size: 1.1rem;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 10px;
+    }
+
+    .badge {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+
+    .source-row {
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px dashed #2d3748;
+    }
+
+    .source-row:last-child {
+      border-bottom: none;
+      margin-bottom: 0;
+      padding-bottom: 0;
+    }
+
+    .source-title {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+
+    .controls-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 6px;
+    }
+
+    .btn {
+      background: var(--primary);
+      color: #04121d;
+      border: none;
+      padding: 8px 14px;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 0.85rem;
+      transition: background 0.15s ease;
+    }
+
+    .btn:hover {
+      background: var(--primary-hover);
+    }
+
+    .btn-secondary {
+      background: #334155;
+      color: #f1f5f9;
+    }
+
+    .btn-secondary:hover {
+      background: #475569;
+    }
+
+    .btn-toggle-on {
+      background: var(--accent-success);
+      color: #022013;
+    }
+
+    input[type=range] {
+      flex: 1;
+      accent-color: var(--primary);
+    }
+
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .metric-box {
+      background: #0f172a;
+      border: 1px solid #293548;
+      border-radius: 8px;
+      padding: 12px;
+      text-align: center;
+    }
+
+    .metric-label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+
+    .metric-value {
+      font-size: 1.4rem;
+      font-weight: 700;
+      font-family: monospace;
+      color: var(--primary);
+    }
+
+    .cap-container {
+      margin-top: 15px;
+    }
+
+    .cap-bar-outer {
+      width: 100%;
+      height: 22px;
+      background: #090e17;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      margin: 8px 0;
+      padding: 2px;
+    }
+
+    .cap-bar-inner {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--primary), var(--accent-success));
+      border-radius: 10px;
+      transition: width 0.1s linear;
+    }
+
+    .load-indicator {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: #0d1520;
+      padding: 12px;
+      border-radius: 8px;
+      margin-top: 15px;
+    }
+
+    .bulb {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #334155;
+      box-shadow: none;
+      transition: all 0.2s ease;
+    }
+
+    .bulb.active {
+      background: #34d399;
+      box-shadow: 0 0 12px #34d399;
+    }
+
+    /* Small animated flywheel spinner */
+    .rotor-disc {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: 3px dashed var(--primary);
+      display: inline-block;
+      vertical-align: middle;
+      transition: transform 0.1s linear;
+    }
+
+    .running {
+      animation: spin 0.3s linear infinite;
+    }
+
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <header>
+      <h1>S.E.E.S. Compact Prototype</h1>
+      <p>Self-Sustaining Energy Extraction System &bull; Multi-Source Harvester Simulation</p>
+    </header>
+
+    <div class="grid-2">
+      <!-- Left Column: Energy Harvesting Inputs -->
+      <div>
+        <div class="card">
+          <h2><span class="badge" style="background: var(--primary);"></span> 1. Kinetic Harvester (Flywheel / DC Gen)</h2>
+          <div class="source-row">
+            <div class="source-title">
+              <span>Rotor State: <span id="txt-rpm" style="font-family: monospace; color: var(--primary);">0 RPM</span></span>
+              <div id="disc-rotor" class="rotor-disc"></div>
+            </div>
+            <div class="controls-row">
+              <button class="btn" onclick="spinFlywheel(3500)">Spin High (3500 RPM)</button>
+              <button class="btn btn-secondary" onclick="spinFlywheel(1500)">Spin Low</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2><span class="badge" style="background: var(--accent-thermal);"></span> 2. Thermoelectric Harvester (Seebeck Module)</h2>
+          <div class="source-row">
+            <div class="source-title">
+              <span>Temperature Delta (&Delta;T)</span>
+              <span id="txt-delta-t" style="color: var(--accent-thermal); font-family: monospace;">60 &deg;C</span>
+            </div>
+            <div class="controls-row">
+              <label style="font-size: 0.8rem; color: var(--text-muted); width: 65px;">Hot Side:</label>
+              <input type="range" id="slider-hot" min="25" max="95" value="85" oninput="updateThermal()">
+              <span id="val-hot" style="font-size: 0.85rem; width: 45px; text-align: right;">85&deg;C</span>
+            </div>
+            <div class="controls-row" style="margin-top: 8px;">
+              <label style="font-size: 0.8rem; color: var(--text-muted); width: 65px;">Cold Side:</label>
+              <input type="range" id="slider-cold" min="0" max="40" value="25" oninput="updateThermal()">
+              <span id="val-cold" style="font-size: 0.85rem; width: 45px; text-align: right;">25&deg;C</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2><span class="badge" style="background: var(--accent-piezo);"></span> 3. Piezoelectric Vibration Cantilever</h2>
+          <div class="source-row">
+            <div class="source-title">
+              <span>Beam State</span>
+              <span id="txt-piezo-state" style="color: var(--accent-piezo); font-family: monospace;">Resting</span>
+            </div>
+            <div class="controls-row">
+              <button class="btn" style="background: var(--accent-piezo); color: #1c0330;" onclick="flickPiezo()">Flick / Tap Beam</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column: Bus, Storage & Load -->
+      <div>
+        <div class="card">
+          <h2><span class="badge" style="background: var(--accent-success);"></span> Shared Power Bus & Instrumentation</h2>
+          <div class="metrics-grid">
+            <div class="metric-box">
+              <div class="metric-label">Bus Voltage</div>
+              <div class="metric-value" id="bus-v">0.00 V</div>
+            </div>
+            <div class="metric-box">
+              <div class="metric-label">Harvest Current</div>
+              <div class="metric-value" id="bus-i">0.0 mA</div>
+            </div>
+            <div class="metric-box">
+              <div class="metric-label">Harvest Power</div>
+              <div class="metric-value" id="bus-p">0.0 mW</div>
+            </div>
+            <div class="metric-box">
+              <div class="metric-label">Total Energy</div>
+              <div class="metric-value" id="total-j">0.00 J</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2><span class="badge" style="background: #38bdf8;"></span> Supercapacitor Buffer & Load</h2>
+          <div class="cap-container">
+            <div style="display: flex; justify-content: space-between; font-size: 0.85rem;">
+              <span>Capacitor Charge (5.5V / 1.0F)</span>
+              <span id="txt-cap-volt" style="font-family: monospace; font-weight: bold; color: var(--accent-success);">0.00 V</span>
+            </div>
+            <div class="cap-bar-outer">
+              <div class="cap-bar-inner" id="cap-bar"></div>
+            </div>
+          </div>
+
+          <div class="load-indicator">
+            <div class="bulb" id="load-bulb"></div>
+            <div style="flex: 1;">
+              <div style="font-size: 0.85rem; font-weight: bold;">Auxiliary Load (3.3V System LED)</div>
+              <div id="load-status" style="font-size: 0.75rem; color: var(--text-muted);">Off &bull; Needs &ge; 1.20 V</div>
+            </div>
+            <button id="btn-load" class="btn btn-secondary" onclick="toggleLoad()">Toggle Load</button>
+          </div>
+        </div>
+
+        <div class="card" style="text-align: center;">
+          <button class="btn" style="width: 100%; padding: 10px;" onclick="resetSimulation()">Reset Prototype State</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // State variables
+    let rpm = 0;
+    let hotTemp = 85;
+    let coldTemp = 25;
+    let piezoAmp = 0;
+    let capVoltage = 0.0;
+    let totalJoules = 0;
+    let loadActive = false;
+
+    // Elements
+    const txtRpm = document.getElementById('txt-rpm');
+    const discRotor = document.getElementById('disc-rotor');
+    const txtDeltaT = document.getElementById('txt-delta-t');
+    const sliderHot = document.getElementById('slider-hot');
+    const sliderCold = document.getElementById('slider-cold');
+    const valHot = document.getElementById('val-hot');
+    const valCold = document.getElementById('val-cold');
+    const txtPiezoState = document.getElementById('txt-piezo-state');
+
+    const busV = document.getElementById('bus-v');
+    const busI = document.getElementById('bus-i');
+    const busP = document.getElementById('bus-p');
+    const totalJ = document.getElementById('total-j');
+
+    const txtCapVolt = document.getElementById('txt-cap-volt');
+    const capBar = document.getElementById('cap-bar');
+    const loadBulb = document.getElementById('load-bulb');
+    const loadStatus = document.getElementById('load-status');
+    const btnLoad = document.getElementById('btn-load');
+
+    function spinFlywheel(targetRpm) {
+      rpm = targetRpm;
+    }
+
+    function updateThermal() {
+      hotTemp = parseFloat(sliderHot.value);
+      coldTemp = parseFloat(sliderCold.value);
+      valHot.textContent = `${hotTemp}°C`;
+      valCold.textContent = `${coldTemp}°C`;
+      const dt = Math.max(0, hotTemp - coldTemp);
+      txtDeltaT.textContent = `${dt.toFixed(1)} °C`;
+    }
+
+    function flickPiezo() {
+      piezoAmp = 3.5;
+      txtPiezoState.textContent = 'Vibrating';
+    }
+
+    function toggleLoad() {
+      loadActive = !loadActive;
+      btnLoad.className = loadActive ? 'btn btn-toggle-on' : 'btn btn-secondary';
+      btnLoad.textContent = loadActive ? 'Load ON' : 'Toggle Load';
+    }
+
+    function resetSimulation() {
+      rpm = 0;
+      piezoAmp = 0;
+      capVoltage = 0;
+      totalJoules = 0;
+      loadActive = false;
+      btnLoad.className = 'btn btn-secondary';
+      btnLoad.textContent = 'Toggle Load';
+    }
+
+    // 10 Hz Physics & Harvest update loop
+    setInterval(() => {
+      const dt = 0.1; // 100 ms
+
+      // 1. Kinetic decay
+      if (rpm > 0) {
+        rpm = Math.max(0, rpm - (200 * dt) - (rpm * 0.1 * dt));
+        discRotor.classList.add('running');
+      } else {
+        discRotor.classList.remove('running');
+      }
+      txtRpm.textContent = `${Math.round(rpm)} RPM`;
+
+      const v_kin_raw = (rpm / 3500) * 4.8;
+      const v_kin = Math.max(0, v_kin_raw - 0.22); // Diode drop
+      const i_kin = v_kin > 0 ? (v_kin / 30) * 1000 : 0; // mA
+
+      // 2. Thermoelectric
+      const deltaT = Math.max(0, hotTemp - coldTemp);
+      const v_th_raw = deltaT * 0.032;
+      const v_th = Math.max(0, v_th_raw - 0.22);
+      const i_th = v_th > 0 ? (v_th / 25) * 1000 : 0; // mA
+
+      // 3. Piezoelectric
+      if (piezoAmp > 0.05) {
+        piezoAmp *= 0.85;
+      } else {
+        piezoAmp = 0;
+        txtPiezoState.textContent = 'Resting';
+      }
+      const v_piezo = Math.max(0, piezoAmp - 0.22);
+      const i_piezo = v_piezo > 0 ? (v_piezo / 400) * 1000 : 0; // mA
+
+      // 4. Combined Diode-OR Bus
+      const combinedBusV = Math.max(v_kin, v_th, v_piezo);
+      let combinedBusI = 0;
+      if (v_kin >= combinedBusV - 0.05) combinedBusI += i_kin;
+      if (v_th >= combinedBusV - 0.05) combinedBusI += i_th;
+      if (v_piezo >= combinedBusV - 0.05) combinedBusI += i_piezo;
+
+      const powerMW = combinedBusV * combinedBusI;
+      totalJoules += (powerMW / 1000) * dt;
+
+      // 5. Capacitor Charging / Discharging
+      let chargeCurrentA = 0;
+      if (combinedBusV > capVoltage) {
+        chargeCurrentA = combinedBusI / 1000;
+      }
+
+      let loadCurrentA = 0;
+      if (loadActive && capVoltage > 0.8) {
+        loadCurrentA = 0.040; // 40 mA load
+      }
+
+      const dV = ((chargeCurrentA - loadCurrentA) * dt) / 1.0; // 1 Farad
+      capVoltage = Math.max(0, Math.min(3.3, capVoltage + dV));
+
+      // UI Updates
+      busV.textContent = `${combinedBusV.toFixed(2)} V`;
+      busI.textContent = `${combinedBusI.toFixed(1)} mA`;
+      busP.textContent = `${powerMW.toFixed(1)} mW`;
+      totalJ.textContent = `${totalJoules.toFixed(2)} J`;
+
+      txtCapVolt.textContent = `${capVoltage.toFixed(2)} V / 3.3 V`;
+      const capPct = Math.min(100, (capVoltage / 3.3) * 100);
+      capBar.style.width = `${capPct.toFixed(1)}%`;
+
+      if (loadActive && capVoltage >= 1.2) {
+        loadBulb.classList.add('active');
+        loadStatus.textContent = 'Active (Consuming ~40 mA)';
+        loadStatus.style.color = '#34d399';
+      } else {
+        loadBulb.classList.remove('active');
+        loadStatus.textContent = loadActive ? 'Capacitor Voltage Too Low (< 1.20 V)' : 'Off (Switched Off)';
+        loadStatus.style.color = '#94a3b8';
+      }
+    }, 100);
+
+    // Initial thermal readout
+    updateThermal();
+  </script>
+</body>
+</html>

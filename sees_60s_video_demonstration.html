@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PROJECT S.E.E.S. — Official 60-Second Video Demonstration</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @keyframes pulse-glow {
+      0%, 100% { filter: drop-shadow(0 0 15px rgba(56, 189, 248, 0.6)); }
+      50% { filter: drop-shadow(0 0 30px rgba(56, 189, 248, 0.9)); }
+    }
+    @keyframes spin-cw {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    .spin-fast { animation: spin-cw 0.35s linear infinite; }
+    .spin-med { animation: spin-cw 0.8s linear infinite; }
+    .glow-cyan { animation: pulse-glow 2s infinite ease-in-out; }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col items-center justify-center p-3 md:p-6 font-sans antialiased select-none">
+
+  <!-- Top Video Frame Container (16:9 Aspect Ratio) -->
+  <div class="w-full max-w-5xl bg-slate-900 border-2 border-slate-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col relative">
+
+    <!-- Video Header Bar -->
+    <div class="bg-slate-950/90 px-5 py-3 border-b border-slate-800 flex items-center justify-between z-20">
+      <div class="flex items-center gap-3">
+        <div class="w-3.5 h-3.5 rounded-full bg-rose-500 animate-ping"></div>
+        <div class="flex items-center gap-2">
+          <span class="text-xs font-black tracking-wider uppercase text-rose-400">REC</span>
+          <span class="text-xs text-slate-400 font-mono" id="timecodeDisplay">00:00 / 01:00</span>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-sky-500/20 text-sky-400 border border-sky-500/30">
+          Official 60s Video Showcase
+        </span>
+        <span class="px-2.5 py-0.5 rounded-full text-[11px] font-mono bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+          Prototype Stage
+        </span>
+      </div>
+    </div>
+
+    <!-- MAIN VIDEO SCREEN (16:9 Canvas) -->
+    <div class="relative w-full aspect-video bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex flex-col items-center justify-center overflow-hidden p-6 text-center">
+
+      <!-- Dynamic Visual Stage (Changes with Scene) -->
+      <div id="videoStage" class="w-full h-full flex flex-col items-center justify-center relative z-10 transition-all duration-700">
+        <!-- Injected via JavaScript -->
+      </div>
+
+      <!-- Live Voice Subtitle Bar (Bottom Overlay) -->
+      <div class="absolute bottom-4 left-6 right-6 bg-slate-950/90 border border-slate-800/80 rounded-2xl p-3.5 backdrop-blur-md shadow-2xl z-20 flex items-center gap-3">
+        <div class="w-2.5 h-2.5 rounded-full bg-emerald-400 shrink-0 animate-pulse"></div>
+        <p class="text-xs sm:text-sm font-medium text-slate-200 text-left leading-relaxed flex-1" id="subtitleText">
+          Loading Project S.E.E.S. 60-Second Video Demonstration...
+        </p>
+      </div>
+    </div>
+
+    <!-- Video Playback & Timeline Controls Bar -->
+    <div class="bg-slate-950 px-6 py-4 border-t border-slate-800 flex flex-col gap-3 z-20">
+      
+      <!-- Progress Bar (0 to 60s) -->
+      <div class="relative w-full h-2.5 bg-slate-800 rounded-full overflow-hidden cursor-pointer" onclick="seekVideo(event)">
+        <div id="progressBar" class="h-full bg-gradient-to-r from-sky-500 via-emerald-400 to-amber-400 rounded-full transition-all duration-100" style="width: 0%;"></div>
+      </div>
+
+      <!-- Controls & Scene Indicators -->
+      <div class="flex flex-wrap items-center justify-between gap-3 text-xs">
+        
+        <div class="flex items-center gap-3">
+          <button id="btnPlayPause" onclick="togglePlay()" class="px-5 py-2 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold flex items-center gap-2 shadow-lg shadow-sky-500/20 transition">
+            <svg id="playIcon" class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+            <span id="playBtnLabel">Play Video</span>
+          </button>
+
+          <button onclick="restartVideo()" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium border border-slate-700 transition">
+            Restart (0s)
+          </button>
+        </div>
+
+        <!-- 5 Scene Jump Buttons -->
+        <div class="flex items-center gap-1.5 overflow-x-auto py-1">
+          <button onclick="jumpTo(0)" class="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 hover:border-sky-500 text-[11px] text-slate-400 hover:text-white transition">
+            Scene 1 (Hook)
+          </button>
+          <button onclick="jumpTo(10)" class="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 hover:border-sky-500 text-[11px] text-slate-400 hover:text-white transition">
+            Scene 2 (Harvesters)
+          </button>
+          <button onclick="jumpTo(25)" class="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 hover:border-sky-500 text-[11px] text-slate-400 hover:text-white transition">
+            Scene 3 (Diode-OR)
+          </button>
+          <button onclick="jumpTo(40)" class="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 hover:border-sky-500 text-[11px] text-slate-400 hover:text-white transition">
+            Scene 4 (Proof)
+          </button>
+          <button onclick="jumpTo(52)" class="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 hover:border-sky-500 text-[11px] text-slate-400 hover:text-white transition">
+            Scene 5 (Sign-Off)
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Narrative Audio Synthesizer & Video Engine -->
+  <script>
+    // 5 Official Scenes (Timed strictly to 60 seconds)
+    const scenes = [
+      {
+        id: 1,
+        start: 0,
+        end: 10,
+        title: "SCENE 1: THE VEHICLE AUXILIARY PROBLEM",
+        subtitle: "Vehicles waste 10%–25% of driving range powering auxiliary systems like headlights and cooling fans. This is Project S.E.E.S. — powering auxiliary loads purely from unharvested ambient losses.",
+        render: () => `
+          <div class="max-w-xl space-y-4 animate-fade-in">
+            <span class="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest bg-rose-500/20 text-rose-400 border border-rose-500/30">
+              The Engineering Problem
+            </span>
+            <h2 class="text-3xl sm:text-4xl font-extrabold text-white tracking-tight leading-tight">
+              Vehicle Auxiliary Systems Cause <span class="text-rose-400">10%–25% of Driving Range Loss</span>
+            </h2>
+            <div class="p-4 bg-slate-950/80 rounded-2xl border border-slate-800 shadow-xl flex items-center justify-around">
+              <div>
+                <span class="text-xs text-slate-500 block">Auxiliary Draw</span>
+                <span class="text-2xl font-black font-mono text-rose-400">200 W–1,500 W</span>
+              </div>
+              <div class="w-px h-10 bg-slate-800"></div>
+              <div>
+                <span class="text-xs text-slate-500 block">Range Loss</span>
+                <span class="text-2xl font-black font-mono text-amber-400">10%–25%</span>
+              </div>
+            </div>
+            <p class="text-sm text-sky-400 font-semibold tracking-wide">
+              Introducing S.E.E.S. | Self-Sustaining Energy System
+            </p>
+          </div>
+        `
+      },
+      {
+        id: 2,
+        start: 10,
+        end: 25,
+        title: "SCENE 2: THE THREE HARVESTING PATHWAYS",
+        subtitle: "First, our 12V kinetic generator captures deceleration inertia. Second, our Seebeck thermoelectric module converts exhaust waste heat into steady baseload current. Third, our resonant cantilever captures continuous road vibration.",
+        render: () => `
+          <div class="w-full max-w-4xl space-y-3">
+            <span class="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest bg-sky-500/20 text-sky-400 border border-sky-500/30">
+              Multi-Source Ambient Harvesting
+            </span>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 text-left">
+              <!-- Kinetic Box -->
+              <div class="p-4 rounded-2xl bg-slate-950 border border-sky-500/40 shadow-lg relative overflow-hidden">
+                <div class="w-12 h-12 rounded-full bg-sky-500/20 border border-sky-400 flex items-center justify-center mb-3">
+                  <div class="w-7 h-7 rounded-full border-2 border-dashed border-sky-400 spin-fast"></div>
+                </div>
+                <h3 class="text-sm font-bold text-white">1. Kinetic Deceleration</h3>
+                <p class="text-xs text-slate-400 mt-1">12V DC Motor-Generator captures braking inertia (High-Power Surge).</p>
+                <div class="mt-2 text-sky-400 font-mono font-bold text-xs">Peak: 750 mW</div>
+              </div>
+
+              <!-- Thermal Box -->
+              <div class="p-4 rounded-2xl bg-slate-950 border border-amber-500/40 shadow-lg relative overflow-hidden">
+                <div class="w-12 h-12 rounded-full bg-amber-500/20 border border-amber-400 flex items-center justify-center mb-3">
+                  <span class="text-amber-400 text-lg">🔥</span>
+                </div>
+                <h3 class="text-sm font-bold text-white">2. Thermoelectric (Seebeck)</h3>
+                <p class="text-xs text-slate-400 mt-1">TEC1-12706 module converts exhaust ΔT into uninterrupted electricity.</p>
+                <div class="mt-2 text-amber-400 font-mono font-bold text-xs">Baseload: 120 mW</div>
+              </div>
+
+              <!-- Vibration Box -->
+              <div class="p-4 rounded-2xl bg-slate-950 border border-purple-500/40 shadow-lg relative overflow-hidden">
+                <div class="w-12 h-12 rounded-full bg-purple-500/20 border border-purple-400 flex items-center justify-center mb-3">
+                  <span class="text-purple-400 text-lg">〰️</span>
+                </div>
+                <h3 class="text-sm font-bold text-white">3. Road Vibration</h3>
+                <p class="text-xs text-slate-400 mt-1">Piezoelectric cantilever beam captures mechanical road strain.</p>
+                <div class="mt-2 text-purple-400 font-mono font-bold text-xs">Telemetry: 12 mW</div>
+              </div>
+            </div>
+          </div>
+        `
+      },
+      {
+        id: 3,
+        start: 25,
+        end: 40,
+        title: "SCENE 3: PROPOSED NOVELTY — SCHOTTKY DIODE-OR BUS",
+        subtitle: "Because these sources have unequal voltages, our novel Schottky Diode-OR bus isolates each channel, preventing cross-conduction without digital switching losses. Notice the meter: our supercapacitor buffer is actively charging!",
+        render: () => `
+          <div class="w-full max-w-3xl space-y-4">
+            <span class="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+              Proposed Novelty (subject to patent review): MISO Architecture
+            </span>
+            <h2 class="text-2xl sm:text-3xl font-extrabold text-white">
+              Autonomous Schottky Diode-OR Power Bus
+            </h2>
+
+            <!-- Digital Meter Climbing Visual -->
+            <div class="grid grid-cols-2 gap-4 max-w-md mx-auto pt-1">
+              <div class="bg-slate-950 p-4 rounded-2xl border border-slate-800 shadow-xl">
+                <span class="text-[11px] text-slate-500 block uppercase font-bold">Common Bus Voltage</span>
+                <span class="text-3xl font-black font-mono text-sky-400" id="animMeterVolt">2.40 V</span>
+                <span class="text-[10px] text-emerald-400 font-medium block mt-1">✓ No Cross-Conduction</span>
+              </div>
+
+              <div class="bg-slate-950 p-4 rounded-2xl border border-slate-800 shadow-xl">
+                <span class="text-[11px] text-slate-500 block uppercase font-bold">Buffer State of Charge</span>
+                <span class="text-3xl font-black font-mono text-emerald-400">85%</span>
+                <div class="w-full h-2 bg-slate-800 rounded-full mt-2 overflow-hidden">
+                  <div class="w-4/5 h-full bg-emerald-400 rounded-full"></div>
+                </div>
+              </div>
+            </div>
+
+            <p class="text-xs text-slate-400 max-w-lg mx-auto">
+              Low-forward-drop 1N5819 diodes (Vf < 0.22V) eliminate reverse voltage damage between unequal generator potentials without micro-controller standby drain.
+            </p>
+          </div>
+        `
+      },
+      {
+        id: 4,
+        start: 40,
+        end: 52,
+        title: "SCENE 4: AUXILIARY DECOUPLING ON HARVESTED ENERGY",
+        subtitle: "Now, we flip the auxiliary switch — and our 5V cooling fan spins at 1,440 RPM and the LED glows brightly with ZERO external battery power, completely decoupled from the main traction grid!",
+        render: () => `
+          <div class="w-full max-w-2xl space-y-4">
+            <span class="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+              Simulated Working Verification
+            </span>
+            <h2 class="text-3xl font-black text-white">
+              Auxiliary Decoupling on Harvested Energy
+            </h2>
+
+            <!-- Live Active Hardware Display -->
+            <div class="grid grid-cols-2 gap-4 max-w-md mx-auto pt-2">
+              <div class="p-5 bg-slate-950 rounded-2xl border-2 border-emerald-500/60 shadow-xl shadow-emerald-500/20 flex flex-col items-center">
+                <div class="w-16 h-16 rounded-full bg-emerald-500/20 border-2 border-emerald-400 flex items-center justify-center mb-2 shadow-lg shadow-emerald-500/50">
+                  <span class="text-3xl text-emerald-400">💡</span>
+                </div>
+                <span class="text-xs font-black text-white">Auxiliary 5V LED</span>
+                <span class="text-[10px] text-emerald-400 font-bold uppercase mt-1">ILLUMINATED</span>
+              </div>
+
+              <div class="p-5 bg-slate-950 rounded-2xl border-2 border-sky-500/60 shadow-xl shadow-sky-500/20 flex flex-col items-center">
+                <div class="w-16 h-16 rounded-full bg-sky-500/20 border-2 border-sky-400 flex items-center justify-center mb-2 shadow-lg shadow-sky-500/50">
+                  <div class="w-10 h-10 text-sky-400 spin-fast flex items-center justify-center">
+                    <svg class="w-8 h-8 fill-current" viewBox="0 0 24 24"><path d="M12 2v20M2 12h20M4.93 4.93l14.14 14.14M4.93 19.07L19.07 4.93"/></svg>
+                  </div>
+                </div>
+                <span class="text-xs font-black text-white">Cooling Fan</span>
+                <span class="text-[10px] text-sky-400 font-bold uppercase mt-1">ACTIVE (1,440 RPM)</span>
+              </div>
+            </div>
+
+            <div class="p-2.5 bg-emerald-950/40 rounded-xl border border-emerald-800/40 text-xs text-emerald-300 font-semibold max-w-md mx-auto">
+              ✓ Main Traction Battery Draw = 0.00 Watts
+            </div>
+          </div>
+        `
+      },
+      {
+        id: 5,
+        start: 52,
+        end: 60,
+        title: "SCENE 5: SIGN-OFF & INNOVATOR ROSTER",
+        subtitle: "Invented by Durgam.Noushik, Narsimha, and B.Tejesh. Patent review pending. You can test our live simulation on Vercel right now. Thank you!",
+        render: () => `
+          <div class="max-w-xl space-y-4">
+            <span class="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest bg-sky-500/20 text-sky-300 border border-sky-500/30">
+              Project S.E.E.S. • Atal Tinkering Lab
+            </span>
+            <h2 class="text-3xl sm:text-4xl font-black text-white tracking-tight">
+              Self-Sustaining Energy System
+            </h2>
+
+            <div class="p-5 bg-slate-950 rounded-2xl border border-slate-800 shadow-2xl text-left space-y-2 text-xs">
+              <div class="flex justify-between items-center pb-2 border-b border-slate-800">
+                <span class="text-slate-400 font-medium">Lead Innovator & Project Lead:</span>
+                <span class="font-bold text-white text-sm">Durgam.Noushik</span>
+              </div>
+              <div class="flex justify-between items-center pb-2 border-b border-slate-800">
+                <span class="text-slate-400 font-medium">Hardware Lead:</span>
+                <span class="font-bold text-sky-300 text-sm">Narsimha (ATL Vice-Captain)</span>
+              </div>
+              <div class="flex justify-between items-center pb-2 border-b border-slate-800">
+                <span class="text-slate-400 font-medium">Research & Documentation:</span>
+                <span class="font-bold text-white text-sm">B.Tejesh</span>
+              </div>
+              <div class="flex justify-between items-center pt-1 text-[11px]">
+                <span class="text-emerald-400 font-semibold">Live Web Testbed:</span>
+                <span class="font-mono text-sky-400 font-bold">Hosted on Vercel</span>
+              </div>
+            </div>
+
+            <p class="text-xs text-slate-400 font-medium">
+              Ready for District Science Officer (DSO) Review & Youth Ideathon 2026.
+            </p>
+          </div>
+        `
+      }
+    ];
+
+    let currentTime = 0;
+    let isPlaying = false;
+    let timer = null;
+    let activeSpeech = null;
+
+    const videoStage = document.getElementById('videoStage');
+    const subtitleText = document.getElementById('subtitleText');
+    const progressBar = document.getElementById('progressBar');
+    const timecodeDisplay = document.getElementById('timecodeDisplay');
+    const btnPlayPause = document.getElementById('btnPlayPause');
+    const playBtnLabel = document.getElementById('playBtnLabel');
+    const playIcon = document.getElementById('playIcon');
+
+    function getCurrentScene(time) {
+      return scenes.find(s => time >= s.start && time < s.end) || scenes[scenes.length - 1];
+    }
+
+    let lastRenderedId = -1;
+
+    function updateFrame() {
+      const scene = getCurrentScene(currentTime);
+
+      // Update Screen Content if Scene Changed
+      if (scene.id !== lastRenderedId) {
+        lastRenderedId = scene.id;
+        videoStage.innerHTML = scene.render();
+        subtitleText.textContent = scene.subtitle;
+        speakSubtitle(scene.subtitle);
+      }
+
+      // Update Progress and Timecode
+      const pct = (currentTime / 60) * 100;
+      progressBar.style.width = `${pct}%`;
+      const mins = Math.floor(currentTime / 60).toString().padStart(2, '0');
+      const secs = (currentTime % 60).toString().padStart(2, '0');
+      timecodeDisplay.textContent = `${mins}:${secs} / 01:00`;
+    }
+
+    // Web Speech Synthesis (AI Voiceover)
+    function speakSubtitle(text) {
+      if (!('speechSynthesis' in window)) return;
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 1.05;
+      utterance.pitch = 1.0;
+      window.speechSynthesis.speak(utterance);
+    }
+
+    function togglePlay() {
+      isPlaying = !isPlaying;
+      if (isPlaying) {
+        playBtnLabel.textContent = "Pause";
+        playIcon.innerHTML = `<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>`;
+        timer = setInterval(() => {
+          currentTime++;
+          if (currentTime >= 60) {
+            currentTime = 60;
+            updateFrame();
+            togglePlay();
+            return;
+          }
+          updateFrame();
+        }, 1000);
+        speakSubtitle(getCurrentScene(currentTime).subtitle);
+      } else {
+        playBtnLabel.textContent = "Play Video";
+        playIcon.innerHTML = `<path d="M8 5v14l11-7z"/>`;
+        clearInterval(timer);
+        if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+      }
+    }
+
+    function restartVideo() {
+      if (isPlaying) togglePlay();
+      currentTime = 0;
+      lastRenderedId = -1;
+      updateFrame();
+    }
+
+    function jumpTo(sec) {
+      currentTime = sec;
+      lastRenderedId = -1;
+      updateFrame();
+    }
+
+    function seekVideo(e) {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const clickX = e.clientX - rect.left;
+      const pct = clickX / rect.width;
+      currentTime = Math.floor(pct * 60);
+      lastRenderedId = -1;
+      updateFrame();
+    }
+
+    // Initialize first frame
+    window.onload = () => {
+      updateFrame();
+    };
+  </script>
+</body>
+</html>

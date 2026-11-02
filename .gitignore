@@ -1,0 +1,6 @@
+.vercel
+.env*.local
+__pycache__/
+*.pyc
+*.bak
+nav_component.html
