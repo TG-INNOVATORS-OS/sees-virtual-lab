@@ -910,10 +910,17 @@
       ctx.closePath();
       ctx.fill();
 
-      // --- 2. 3D ELEVATED ROAD SURFACE ---
+      // --- 2. VEHICLE METRICS & ROAD BOUNDS ---
       const roadTop = horizonY;
       const roadBottom = H;
       const roadHeight = roadBottom - roadTop;
+
+      const carW = Math.min(W * 0.38, 440);
+      const carH = carW * 0.40;
+      const carX = (W - carW) * 0.5;
+      const baseCarY = roadTop + roadHeight * 0.24;
+      const cy = baseCarY - SIM.suspensionBounce;
+      const wheelR = carH * 0.23;
 
       ctx.fillStyle = '#1c1f2b';
       ctx.fillRect(0, roadTop, W, roadHeight);
@@ -1010,11 +1017,7 @@
       }
 
       // --- 3. VEHICLE COORDINATES & SUSPENSION DYNAMICS ---
-      const carW = Math.min(W * 0.38, 440);
-      const carH = carW * 0.40;
-      const carX = (W - carW) * 0.5;
-      const baseCarY = roadTop + roadHeight * 0.24;
-      const cy = baseCarY - SIM.suspensionBounce;
+      // (Metrics defined above for zero-slip road sync)
 
       // Cast body shadow & contact ground shadow
       ctx.save();
@@ -1051,7 +1054,6 @@
       const frontWheelX = carX + carW * 0.78;
       const rearWheelX = carX + carW * 0.20;
       const wheelY = cy + carH * 0.78;
-      const wheelR = carH * 0.23;
 
       // Wheel contact shadows
       [frontWheelX, rearWheelX].forEach(wx => {
@@ -1316,6 +1318,7 @@
       ctx.fillStyle = '#1e293b';
       ctx.fillRect(rearAxleX - 2, rearAxleY - 8, 5, 8);
       ctx.fillRect(genX - 16, genY + 8, 6, 8);
+      ctx.restore();
 
       // 2. Bevel Gearbox Housing
       ctx.fillStyle = '#1e293b';
