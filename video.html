@@ -615,20 +615,23 @@
 
     el.sliderHotT.addEventListener('input', e => {
       SIM.tHot = parseFloat(e.target.value);
-      el.valHotT.textContent = `${SIM.tHot}°C`;
-      SIM.thermalBurst = Math.min(1.0, SIM.thermalBurst + 0.35);
+      const dtVal = Math.max(0, SIM.tHot - SIM.tCold).toFixed(0);
+      el.valHotT.textContent = `${SIM.tHot}°C (ΔT: ${dtVal}°C)`;
+      SIM.thermalBurst = Math.min(1.0, SIM.thermalBurst + 0.4);
     });
 
     el.sliderColdT.addEventListener('input', e => {
       SIM.tCold = parseFloat(e.target.value);
-      el.valColdT.textContent = `${SIM.tCold}°C`;
-      SIM.thermalBurst = Math.min(1.0, SIM.thermalBurst + 0.25);
+      const dtVal = Math.max(0, SIM.tHot - SIM.tCold).toFixed(0);
+      el.valColdT.textContent = `${SIM.tCold}°C (ΔT: ${dtVal}°C)`;
+      SIM.thermalBurst = Math.min(1.0, SIM.thermalBurst + 0.3);
     });
 
     el.sliderSeebeck.addEventListener('input', e => {
       SIM.seebeckCoeff = parseFloat(e.target.value);
-      el.valSeebeck.textContent = `${SIM.seebeckCoeff.toFixed(3)} V/K`;
-      SIM.thermalBurst = Math.min(1.0, SIM.thermalBurst + 0.3);
+      const vocEst = (SIM.seebeckCoeff * Math.max(0, SIM.tHot - SIM.tCold)).toFixed(2);
+      el.valSeebeck.textContent = `${SIM.seebeckCoeff.toFixed(3)} V/K (Voc ≈ ${vocEst}V)`;
+      SIM.thermalBurst = Math.min(1.0, SIM.thermalBurst + 0.35);
     });
 
     el.sliderPiezoAmp.addEventListener('input', e => {
@@ -922,6 +925,14 @@
       const cy = baseCarY - SIM.suspensionBounce;
       const wheelR = carH * 0.23;
 
+      // Subsystem Component Coordinates
+      const engineX = carX + carW * 0.70;
+      const engineY = cy + carH * 0.36;
+      const tecX = engineX - 18;
+      const tecY = engineY + 2;
+      const tecW = 16;
+      const tecH = 25;
+
       ctx.fillStyle = '#1c1f2b';
       ctx.fillRect(0, roadTop, W, roadHeight);
 
@@ -1212,89 +1223,177 @@
       ctx.globalAlpha = 0.90;
 
       // ─────────────────────────────────────────────────────────────
-      // A. ENGINE & THERMOELECTRIC (TEC1-12706) HARVESTER
-      // Reacts directly to hotTemp, coldTemp, and Seebeck coefficient
+      // A. ENGINE & THERMOELECTRIC (TEC1-12706) HARVESTER (STAGE 2 ENHANCED)
+      // Realistic multi-stage thermal gradient, Bi2Te3 pellets, heat shimmer & radiator cooling
       // ─────────────────────────────────────────────────────────────
-      const engineX = carX + carW * 0.70;
-      const engineY = cy + carH * 0.36;
       const tNorm = Math.min(1.0, Math.max(0.0, (SIM.tHot - 25) / 95.0)); // 0 to 1
       const deltaT = Math.max(0, SIM.tHot - SIM.tCold);
+      const tColdNorm = Math.min(1.0, Math.max(0.0, SIM.tCold / 45.0));
 
-      // Thermal glow intensity & chromatic warmth proportional to temperature
-      const glowRadius = 24 + tNorm * 32 + SIM.thermalBurst * 18;
-      const engineHeatGlow = ctx.createRadialGradient(engineX + 16, engineY + 14, 2, engineX + 16, engineY + 14, glowRadius);
-      // Hot side color shift: golden yellow -> searing vermilion
-      const rHot = Math.round(230 + tNorm * 25);
-      const gHot = Math.round(180 - tNorm * 110);
-      const bHot = Math.round(40 - tNorm * 30);
-      engineHeatGlow.addColorStop(0.0, `rgba(${rHot}, ${gHot}, ${bHot}, ${0.75 + tNorm * 0.25})`);
-      engineHeatGlow.addColorStop(0.55, `rgba(234, 88, 12, ${0.30 + tNorm * 0.35})`);
+      // 1. Engine Combustion Block & Manifold Thermal Glow
+      // Color shift from cherry ember at low temp to incandescent molten gold at high temp
+      const rHot = Math.round(200 + tNorm * 55);
+      const gHot = Math.round(55 + tNorm * 145);
+      const bHot = Math.round(25 - tNorm * 15);
+
+      // Cold side temperature color: icy diamond cyan (0°C) -> neutral slate (45°C)
+      const rCold = Math.round(180 + tColdNorm * 45);
+      const gCold = Math.round(225 - tColdNorm * 65);
+      const bCold = Math.round(255 - tColdNorm * 80);
+
+      // Searing Engine Thermal Emission Bloom
+      const glowRadius = 26 + tNorm * 36 + SIM.thermalBurst * 18;
+      const engineHeatGlow = ctx.createRadialGradient(engineX + 18, engineY + 12, 3, engineX + 18, engineY + 12, glowRadius);
+      engineHeatGlow.addColorStop(0.0, `rgba(${rHot}, ${gHot}, ${bHot}, ${0.80 + tNorm * 0.20})`);
+      engineHeatGlow.addColorStop(0.5, `rgba(234, 88, 12, ${0.35 + tNorm * 0.35})`);
       engineHeatGlow.addColorStop(1.0, 'rgba(234, 88, 12, 0.0)');
       ctx.fillStyle = engineHeatGlow;
-      ctx.fillRect(engineX - 16, engineY - 14, 68, 60);
+      ctx.beginPath();
+      ctx.arc(engineX + 18, engineY + 12, glowRadius, 0, Math.PI * 2);
+      ctx.fill();
 
-      // Engine block outline & internal cylinder wireframe
+      // Engine Cylinder Head Castings & Ribbed Exhaust Header
+      ctx.fillStyle = '#1e1b2e';
       ctx.strokeStyle = `rgb(${rHot}, ${gHot}, ${bHot})`;
       ctx.lineWidth = 2.2;
       ctx.shadowColor = `rgb(${rHot}, ${gHot}, ${bHot})`;
-      ctx.shadowBlur = 8 + tNorm * 8;
-      ctx.strokeRect(engineX, engineY + 4, 34, 22);
+      ctx.shadowBlur = 8 + tNorm * 12;
+      ctx.strokeRect(engineX, engineY, 36, 26);
+      ctx.fillRect(engineX, engineY, 36, 26);
+
+      // Internal combustion cylinder bores (pulsing thermal core)
+      ctx.fillStyle = `rgba(${rHot}, ${gHot}, ${bHot}, ${0.45 + tNorm * 0.40})`;
       ctx.beginPath();
-      ctx.moveTo(engineX + 8, engineY + 4);
-      ctx.lineTo(engineX + 8, engineY - 4);
-      ctx.lineTo(engineX + 26, engineY - 4);
-      ctx.lineTo(engineX + 26, engineY + 4);
+      ctx.arc(engineX + 11, engineY + 13, 6, 0, Math.PI * 2);
+      ctx.arc(engineX + 25, engineY + 13, 6, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Exhaust Manifold Runners
+      ctx.strokeStyle = `rgba(${rHot}, ${gHot}, ${bHot}, 0.75)`;
+      ctx.lineWidth = 2.0;
+      ctx.beginPath();
+      ctx.moveTo(engineX + 11, engineY + 26);
+      ctx.lineTo(engineX + 11, engineY + 32);
+      ctx.lineTo(engineX + 25, engineY + 32);
+      ctx.lineTo(engineX + 25, engineY + 26);
       ctx.stroke();
+      ctx.shadowBlur = 0;
 
-      // B. TEC1-12706 Thermoelectric Module (Sandwiched between Engine and Cold Radiator)
-      const tecX = engineX - 14;
-      const tecY = engineY + 4;
-      const tecW = 12;
-      const tecH = 22;
+      // 2. High-Fidelity TEC1-12706 Thermoelectric Module Architecture
+      // Sandwiched between Engine Hot Face (right) and Aluminum Radiator (left)
 
-      // Ceramic substrate plates
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(tecX, tecY, 2, tecH); // hot ceramic plate
-      ctx.fillRect(tecX + tecW - 2, tecY, 2, tecH); // cold ceramic plate
-
-      // Distinct Thermal Gradient between hot and cold surfaces
-      const tecGrad = ctx.createLinearGradient(tecX, tecY, tecX + tecW, tecY);
-      tecGrad.addColorStop(0.0, `rgb(${rHot}, ${gHot}, ${bHot})`); // hot face
-      tecGrad.addColorStop(1.0, '#38bdf8'); // cold face (ambient radiator)
-      ctx.fillStyle = tecGrad;
-      ctx.fillRect(tecX + 2, tecY + 1, tecW - 4, tecH - 2);
-
-      // Bismuth Telluride (Bi2Te3) semiconductor pellets wireframe
-      ctx.strokeStyle = '#0f172a';
-      ctx.lineWidth = 1;
-      for (let p = 0; p < 4; p++) {
-        ctx.strokeRect(tecX + 3, tecY + 2 + p * 5, tecW - 6, 3);
+      // Extruded Aluminum Heat Sink Cooling Fins (Cold side interface)
+      ctx.strokeStyle = `rgb(${rCold}, ${gCold}, ${bCold})`;
+      ctx.lineWidth = 1.4;
+      for (let fin = 0; fin < 5; fin++) {
+        const fy = tecY + 2 + fin * 5;
+        ctx.beginPath();
+        ctx.moveTo(tecX, fy);
+        ctx.lineTo(tecX - 7, fy);
+        ctx.stroke();
       }
 
-      // TEC Visual Intensity indicator (proportional to deltaT and Seebeck electrical conversion)
-      const tecOutputPulse = SIM.vThermal > 0.1 ? (0.6 + 0.4 * Math.sin(SIM.time * 8)) : 0.2;
-      ctx.strokeStyle = `rgba(251, 191, 36, ${tecOutputPulse})`;
-      ctx.lineWidth = 1.5;
-      ctx.strokeRect(tecX - 1, tecY - 1, tecW + 2, tecH + 2);
+      // Cold-Side Ceramic Substrate Plate (Alumina ceramic)
+      ctx.fillStyle = `rgb(${rCold}, ${gCold}, ${bCold})`;
+      ctx.fillRect(tecX, tecY, 2.5, tecH);
 
-      // Animated Heat Shimmer Rising Above Thermal Module
-      if (deltaT > 10) {
+      // Hot-Side Ceramic Substrate Plate (Direct thermal contact with engine)
+      ctx.fillStyle = `rgb(${rHot}, ${gHot}, ${bHot})`;
+      ctx.fillRect(tecX + tecW - 2.5, tecY, 2.5, tecH);
+
+      // Realistic Multi-Stage Thermal Gradient across Bi2Te3 Semiconductor Core
+      const tecThermalGrad = ctx.createLinearGradient(tecX + tecW - 2.5, tecY, tecX + 2.5, tecY);
+      tecThermalGrad.addColorStop(0.0, `rgb(${rHot}, ${gHot}, ${bHot})`); // hot face
+      tecThermalGrad.addColorStop(0.55, 'rgba(245, 158, 11, 0.85)'); // intermediate thermal drop
+      tecThermalGrad.addColorStop(1.0, `rgb(${rCold}, ${gCold}, ${bCold})`); // cold radiator face
+      ctx.fillStyle = tecThermalGrad;
+      ctx.fillRect(tecX + 2.5, tecY + 1, tecW - 5, tecH - 2);
+
+      // Bismuth Telluride (Bi2Te3) P/N Semiconductor Pellet Couples
+      // Alternating P-type and N-type thermoelement columns connected by copper straps
+      ctx.strokeStyle = '#0f172a';
+      ctx.lineWidth = 0.8;
+      for (let row = 0; row < 4; row++) {
+        const py = tecY + 2.5 + row * 5.2;
+        // P-type pellet
+        ctx.fillStyle = 'rgba(239, 68, 68, 0.35)';
+        ctx.fillRect(tecX + 3.5, py, (tecW - 8) * 0.45, 3.2);
+        ctx.strokeRect(tecX + 3.5, py, (tecW - 8) * 0.45, 3.2);
+        // N-type pellet
+        ctx.fillStyle = 'rgba(56, 189, 248, 0.35)';
+        ctx.fillRect(tecX + 3.5 + (tecW - 8) * 0.55, py, (tecW - 8) * 0.45, 3.2);
+        ctx.strokeRect(tecX + 3.5 + (tecW - 8) * 0.55, py, (tecW - 8) * 0.45, 3.2);
+      }
+
+      // Dynamic Seebeck Electrical Generation Aura (Governed by sliderSeebeck and deltaT)
+      const seebeckAura = Math.min(1.0, (SIM.seebeckCoeff / 0.04) * (deltaT / 75.0));
+      if (seebeckAura > 0.05) {
         ctx.save();
-        ctx.lineWidth = 1.4;
-        const shimmerAlpha = Math.min(0.7, (deltaT / 90.0) * 0.7);
+        const pulseRate = 0.5 + 0.5 * Math.sin(SIM.time * 6);
+        ctx.strokeStyle = `rgba(251, 191, 36, ${0.45 * seebeckAura + 0.35 * pulseRate})`;
+        ctx.lineWidth = 1.6;
+        ctx.shadowColor = '#ea580c';
+        ctx.shadowBlur = 6 + seebeckAura * 8;
+        ctx.strokeRect(tecX - 1.5, tecY - 1.5, tecW + 3, tecH + 3);
+        ctx.restore();
+      }
+
+      // 3. Hot-Side Convective Heat Waves & Ambient Air Cooling
+      // Animated Convective Heat Shimmer Rising Above Engine Block
+      if (deltaT > 8) {
+        ctx.save();
+        const shimmerAlpha = Math.min(0.85, (deltaT / 95.0) * 0.85);
         for (let sh of heatShimmerParticles) {
-          sh.yProgress = (sh.yProgress + sh.speed * dt * 0.8) % 1.0;
-          const sx = engineX + 16 + sh.xOffset;
-          const sy = engineY - 4 - sh.yProgress * 26;
-          const waveX = sx + Math.sin(sh.yProgress * Math.PI * 4 + SIM.time * 6 + sh.phase) * sh.amplitude;
-          ctx.strokeStyle = `rgba(251, 146, 60, ${(1.0 - sh.yProgress) * shimmerAlpha})`;
+          sh.yProgress = (sh.yProgress + (sh.speed * 1.2 + tNorm * 0.6) * dt * 0.9) % 1.0;
+          const sx = engineX + 18 + sh.xOffset;
+          const sy = engineY - 2 - sh.yProgress * 32;
+          const waveX = sx + Math.sin(sh.yProgress * Math.PI * 4 + SIM.time * 8 + sh.phase) * (sh.amplitude + tNorm * 2.5);
+          ctx.strokeStyle = `rgba(${rHot}, ${gHot}, ${bHot}, ${(1.0 - sh.yProgress) * shimmerAlpha})`;
+          ctx.lineWidth = 1.6;
           ctx.beginPath();
-          ctx.moveTo(waveX - 2, sy);
-          ctx.quadraticCurveTo(waveX, sy - 3, waveX + 2, sy - 6);
+          ctx.moveTo(waveX - 3, sy);
+          ctx.quadraticCurveTo(waveX, sy - 4, waveX + 3, sy - 8);
           ctx.stroke();
         }
         ctx.restore();
       }
+
+      // Ambient Cool Airflow washing over the cold radiator fins
+      if (SIM.currentSpeed > 2 || SIM.tCold < 30) {
+        ctx.save();
+        const airSpeed = 1.0 + (SIM.currentSpeed / 60.0) * 2.0;
+        const airAlpha = Math.min(0.55, 0.2 + (SIM.currentSpeed / 90.0) * 0.35);
+        ctx.strokeStyle = `rgba(${rCold}, ${gCold}, ${bCold}, ${airAlpha})`;
+        ctx.lineWidth = 1.2;
+        for (let a = 0; a < 3; a++) {
+          const ay = tecY + 4 + a * 8;
+          const axOffset = ((SIM.time * 45 * airSpeed + a * 12) % 28);
+          ctx.beginPath();
+          ctx.moveTo(tecX - 22 + axOffset, ay);
+          ctx.lineTo(tecX - 8 + axOffset, ay);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      // 4. Floating Holographic TEG Micro-HUD Badge
+      ctx.save();
+      ctx.font = '8px monospace';
+      ctx.textAlign = 'center';
+      if (SIM.vThermal > 0.05) {
+        ctx.fillStyle = '#fbbf24';
+        ctx.shadowColor = '#ea580c';
+        ctx.shadowBlur = 6;
+        const tegPow = (SIM.vThermal * SIM.iThermal / 1000).toFixed(1);
+        ctx.fillText(`⚡ TEG: +${tegPow}W`, tecX + tecW * 0.5, tecY - 16);
+        ctx.fillStyle = '#38bdf8';
+        ctx.fillText(`ΔT: ${deltaT.toFixed(0)}°C`, tecX + tecW * 0.5, tecY - 8);
+      } else {
+        ctx.fillStyle = '#94a3b8';
+        ctx.fillText(`TEC1-12706`, tecX + tecW * 0.5, tecY - 16);
+        ctx.fillText(`ΔT: ${deltaT.toFixed(0)}°C`, tecX + tecW * 0.5, tecY - 8);
+      }
+      ctx.restore();
 
       // ─────────────────────────────────────────────────────────────
       // B. REAR DC AXLE GENERATOR & ROTOR (STAGE 1 KINETIC ENHANCEMENT)
@@ -1705,33 +1804,90 @@
         ctx.restore();
       }
 
-      // 2. Thermal Pathway (AMBER): TEC Module -> Central Supercapacitor
+      // 2. Thermal Pathway (AMBER): TEC Module -> Central Supercapacitor (STAGE 2 ENHANCED)
       if (SIM.vThermal > 0.05) {
         ctx.save();
-        ctx.fillStyle = '#fbbf24';
-        ctx.shadowColor = '#ea580c';
-        ctx.shadowBlur = 8;
-        const currentRatio = Math.min(1.0, SIM.iThermal / 80.0);
+        const currentRatio = Math.min(1.0, SIM.iThermal / 75.0);
         const tCount = Math.min(POOL_SIZE, Math.floor(currentRatio * 18) + 4);
-        const particleSpeed = 1.0 + currentRatio * 2.2;
+        const particleSpeed = 1.1 + currentRatio * 3.0;
 
-        for (let p = 0; p < tCount; p++) {
-          const pt = thermalParticles[p];
-          pt.progress = (pt.progress + pt.speed * particleSpeed * dt * 0.7) % 1.0;
-          const prog = pt.progress;
-          const px = tecX - prog * (tecX - (capBoxX + capW));
-          const py = (tecY + 10) + prog * ((capBoxY + 6) - (tecY + 10)) + Math.sin(prog * Math.PI * 4 + SIM.time * 10) * pt.lateral;
-          const pSize = 1.8 + currentRatio * 1.5;
-          ctx.beginPath();
-          ctx.arc(px, py, pSize, 0, Math.PI * 2);
-          ctx.fill();
-        }
-        ctx.strokeStyle = `rgba(251, 191, 36, ${0.3 + currentRatio * 0.5})`;
-        ctx.lineWidth = 1.8;
+        // Active conduit pulsating glow (Heat-shielded copper bus trace)
+        const wireAlpha = 0.35 + currentRatio * 0.55;
+        ctx.strokeStyle = `rgba(251, 191, 36, ${wireAlpha})`;
+        ctx.lineWidth = 2.0 + currentRatio * 1.4;
+        ctx.shadowColor = '#ea580c';
+        ctx.shadowBlur = 6 + currentRatio * 10;
         ctx.beginPath();
-        ctx.moveTo(tecX, tecY + 10);
+        ctx.moveTo(tecX, tecY + 12);
         ctx.lineTo(capBoxX + capW, capBoxY + 6);
         ctx.stroke();
+
+        // High-frequency thermal conduction wave ripple along the wire
+        if (currentRatio > 0.15) {
+          const wavePhase = (SIM.time * 16 * particleSpeed) % (Math.PI * 2);
+          ctx.strokeStyle = '#ffffff';
+          ctx.lineWidth = 1.3;
+          ctx.beginPath();
+          const waveSteps = 16;
+          for (let w = 0; w <= waveSteps; w++) {
+            const wProg = w / waveSteps;
+            const wx = tecX - wProg * (tecX - (capBoxX + capW));
+            const wy = (tecY + 12) + wProg * ((capBoxY + 6) - (tecY + 12)) + Math.sin(wProg * Math.PI * 6 + wavePhase) * (1.1 * currentRatio);
+            if (w === 0) ctx.moveTo(wx, wy); else ctx.lineTo(wx, wy);
+          }
+          ctx.stroke();
+        }
+
+        // Cinematic Amber Particles with Trailing Comet Trails
+        for (let p = 0; p < tCount; p++) {
+          const pt = thermalParticles[p];
+          pt.progress = (pt.progress + pt.speed * particleSpeed * dt * 0.72) % 1.0;
+          const prog = pt.progress;
+
+          // Conduit coordinates
+          const px = tecX - prog * (tecX - (capBoxX + capW));
+          const py = (tecY + 12) + prog * ((capBoxY + 6) - (tecY + 12)) + Math.sin(prog * Math.PI * 4 + SIM.time * 10) * pt.lateral;
+
+          // Comet tail vector pointing backwards
+          const tailLen = (5 + particleSpeed * 2.4) * (1 - prog * 0.25);
+          const dx = (capBoxX + capW) - tecX;
+          const dy = (capBoxY + 6) - (tecY + 12);
+          const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+          const tailX = px - (dx / dist) * tailLen;
+          const tailY = py - (dy / dist) * tailLen;
+
+          // Trailing comet gradient (hot amber/orange to transparent)
+          const cometGrad = ctx.createLinearGradient(tailX, tailY, px, py);
+          cometGrad.addColorStop(0.0, 'rgba(234, 88, 12, 0.0)');
+          cometGrad.addColorStop(0.65, 'rgba(251, 191, 36, 0.65)');
+          cometGrad.addColorStop(1.0, '#ffffff');
+
+          ctx.strokeStyle = cometGrad;
+          ctx.lineWidth = 2.0 + currentRatio * 1.2;
+          ctx.beginPath();
+          ctx.moveTo(tailX, tailY);
+          ctx.lineTo(px, py);
+          ctx.stroke();
+
+          // Glowing Golden-White Spark Head
+          ctx.fillStyle = '#ffffff';
+          ctx.shadowColor = '#f59e0b';
+          ctx.shadowBlur = 8 + currentRatio * 6;
+          ctx.beginPath();
+          ctx.arc(px, py, 1.8 + currentRatio * 1.2, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        // Supercapacitor Terminal Spark Splash at Thermal Entry Node
+        if (currentRatio > 0.25 && Math.sin(SIM.time * 22) > 0.2) {
+          ctx.fillStyle = '#f59e0b';
+          ctx.shadowColor = '#ea580c';
+          ctx.shadowBlur = 8;
+          ctx.beginPath();
+          ctx.arc(capBoxX + capW, capBoxY + 6, 2.8, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
         ctx.restore();
       }
 
