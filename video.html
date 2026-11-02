@@ -108,8 +108,11 @@
           </div>
           <div class="w-px h-6 bg-slate-800"></div>
           <div>
-            <span class="text-[9px] text-slate-400 uppercase font-bold block">X-Ray Subsystems</span>
-            <span class="text-[10px] font-mono text-slate-300">🔥 Engine | ⚡ Motor | 〰 Springs Active</span>
+            <span class="text-[9px] text-slate-400 uppercase font-bold block flex items-center gap-1.5">
+              <span>X-Ray Subsystems</span>
+              <span class="text-[9px] px-1.5 py-0.2 rounded bg-sky-500/20 text-sky-300 font-mono">SIMULATED</span>
+            </span>
+            <span class="text-[10px] font-mono text-slate-300">🔥 Engine TEC | ⚡ Axle Gen | 〰 PZT Cantilever</span>
           </div>
         </div>
 
@@ -241,7 +244,8 @@
       <div class="lg:col-span-4 bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg">
         <h3 class="text-xs font-bold text-white uppercase tracking-wider mb-3 flex items-center gap-2">
           <span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span>
-          Live Harvester Readings
+          <span>Live Harvester Telemetry</span>
+          <span class="ml-auto text-[10px] px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/30 font-mono font-bold tracking-normal">SIMULATED</span>
         </h3>
         <div class="grid grid-cols-2 gap-2 mb-3">
           <div class="bg-slate-950 rounded-xl border border-slate-800 p-2.5">
@@ -327,7 +331,7 @@
         this.quadraticCurveTo(x + w, y + h, x + w - br, y + h);
         this.lineTo(x + bl, y + h);
         this.quadraticCurveTo(x, y + h, x, y + h - bl);
-        this.lineTo(x, y + tl);
+        this.lineTo(x + tl, y);
         this.quadraticCurveTo(x, y, x + tl, y);
         this.closePath();
         return this;
@@ -342,19 +346,19 @@
 
     function resizeCanvases() {
       const cRect = carCanvas.parentElement.getBoundingClientRect();
-      carCanvas.width = cRect.width * window.devicePixelRatio;
-      carCanvas.height = cRect.height * window.devicePixelRatio;
-      carCtx.setTransform(window.devicePixelRatio, 0, 0, window.devicePixelRatio, 0, 0);
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      carCanvas.width = cRect.width * dpr;
+      carCanvas.height = cRect.height * dpr;
 
       const wRect = waveCanvas.parentElement.getBoundingClientRect();
-      waveCanvas.width = wRect.width * window.devicePixelRatio;
-      waveCanvas.height = 140 * window.devicePixelRatio;
-      waveCtx.setTransform(window.devicePixelRatio, 0, 0, window.devicePixelRatio, 0, 0);
+      waveCanvas.width = wRect.width * dpr;
+      waveCanvas.height = 140 * dpr;
     }
+
     window.addEventListener('resize', resizeCanvases);
     resizeCanvases();
 
-    // ── Physics State ──
+    // ── Physics & Animation State ──
     const SIM = {
       paused: false,
       vehicleState: 'idle',
@@ -369,6 +373,7 @@
 
       // Kinetic rig parameters
       flywheelOmega: 0,
+      rotorAngle: 0,
       kInertia: 0.005,
       kCoupling: 0.012,
 
@@ -381,9 +386,13 @@
       piezoAmp: 1.5,
       piezoFreq: 28,
 
-      // Suspension / Bumps
+      // Suspension & Chassis Dynamics
       suspensionBounce: 0,
       shockCompression: 0,
+      shockCompressionFront: 0,
+      shockCompressionRear: 0,
+      chassisPitch: 0, // pitch angle in radians (acceleration squat / braking dive)
+      cantileverDisp: 0, // dynamic displacement of PZT cantilever beam
 
       // Computed outputs
       vKinetic: 0, iKinetic: 0,
@@ -395,6 +404,13 @@
       capVoltage: 0.0,
       capFarads: 1.0,
       capMaxV: 5.5,
+      capNetCurrentA: 0.0,
+
+      // Transient triggers & visual effects
+      brakingBurst: 0, // 0 to 1 intensity of kinetic regen flash
+      thermalBurst: 0, // 0 to 1 intensity of thermal surge
+      piezoBurst: 0,   // 0 to 1 intensity of piezo surge
+      cameraShake: 0,  // pixels of subtle vertical camera shake
 
       // Waveform history
       waveHistory: [],
@@ -406,7 +422,27 @@
       displayFPS: 0,
     };
 
-    const VF_DIODE = 0.30;
+    const VF_DIODE = 0.22; // Physical Schottky 1N5819 forward drop
+
+    // ── Pre-allocated Particle Pools (Zero runtime GC allocations) ──
+    const POOL_SIZE = 40;
+    const kineticParticles = [];
+    const thermalParticles = [];
+    const piezoParticles = [];
+    const heatShimmerParticles = [];
+
+    for (let i = 0; i < POOL_SIZE; i++) {
+      kineticParticles.push({ progress: i / POOL_SIZE, speed: 0.8 + Math.random() * 0.4, lateral: (Math.random() - 0.5) * 4 });
+      thermalParticles.push({ progress: i / POOL_SIZE, speed: 0.7 + Math.random() * 0.5, lateral: (Math.random() - 0.5) * 4 });
+      piezoParticles.push({ progress: i / POOL_SIZE, speed: 0.9 + Math.random() * 0.4, lateral: (Math.random() - 0.5) * 4 });
+      heatShimmerParticles.push({
+        xOffset: (Math.random() - 0.5) * 36,
+        yProgress: Math.random(),
+        speed: 0.4 + Math.random() * 0.6,
+        amplitude: 3 + Math.random() * 5,
+        phase: Math.random() * Math.PI * 2
+      });
+    }
 
     // ── DOM References ──
     const el = {
@@ -453,97 +489,112 @@
       ctrlPiezo: document.getElementById('ctrlPiezo'),
     };
 
-    // ── Vehicle State Management ──
+    // ── Vehicle State Button Logic ──
     window.setVehicleState = function(state) {
       SIM.vehicleState = state;
-      switch (state) {
-        case 'idle':
-          SIM.targetSpeed = 0;
-          el.sliderSpeed.value = 0;
-          break;
-        case 'accelerating':
-          if (SIM.targetSpeed < 30) { SIM.targetSpeed = 80; el.sliderSpeed.value = 80; }
-          break;
-        case 'cruising':
-          SIM.targetSpeed = SIM.currentSpeed > 5 ? SIM.currentSpeed : 60;
-          el.sliderSpeed.value = Math.round(SIM.targetSpeed);
-          break;
-        case 'decelerating':
-          SIM.targetSpeed = 0;
-          el.sliderSpeed.value = 0;
-          break;
+      if (state === 'idle') {
+        SIM.targetSpeed = 0;
+      } else if (state === 'accelerating') {
+        SIM.targetSpeed = Math.max(70, SIM.currentSpeed + 35);
+      } else if (state === 'cruising') {
+        SIM.targetSpeed = Math.max(50, SIM.currentSpeed);
+      } else if (state === 'decelerating') {
+        SIM.targetSpeed = 0;
+        SIM.brakingBurst = 1.0;
+        SIM.cameraShake = Math.min(3.5, SIM.currentSpeed * 0.04);
       }
+      el.sliderSpeed.value = SIM.targetSpeed;
+      el.valTargetSpeed.textContent = `${Math.round(SIM.targetSpeed)} km/h`;
       updateStateButtonStyles();
     };
 
     function updateStateButtonStyles() {
-      document.querySelectorAll('.state-btn').forEach(btn => {
-        const s = btn.dataset.state;
+      const stateBtns = document.querySelectorAll('#stateButtons button');
+      stateBtns.forEach(btn => {
+        const s = btn.getAttribute('data-state');
         if (s === SIM.vehicleState) {
           btn.className = 'state-btn px-3 py-2 text-xs font-semibold rounded-lg bg-sky-600 text-white shadow transition';
         } else {
           btn.className = 'state-btn px-3 py-2 text-xs font-medium rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700 transition';
         }
       });
-      const labels = { idle: 'IDLE', accelerating: 'ACCELERATING', cruising: 'CRUISING', decelerating: 'DECELERATING' };
-      el.vehicleStateBadge.textContent = labels[SIM.vehicleState] || 'IDLE';
+      const badgeNames = { idle: 'IDLE', accelerating: 'ACCELERATING', cruising: 'CRUISING', decelerating: 'REGEN BRAKING' };
+      const badgeColors = {
+        idle: 'bg-slate-800 text-slate-400 border-slate-700',
+        accelerating: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
+        cruising: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
+        decelerating: 'bg-sky-500/25 text-sky-300 border-sky-400/50'
+      };
+      el.vehicleStateBadge.textContent = badgeNames[SIM.vehicleState] || 'ACTIVE';
+      el.vehicleStateBadge.className = `px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${badgeColors[SIM.vehicleState] || ''}`;
     }
 
-    // ── Rig Selection ──
+    // ── Rig Selector Tabs ──
     window.selectRig = function(rig) {
       SIM.activeRig = rig;
-      el.ctrlKinetic.classList.toggle('hidden', rig !== 'kinetic');
-      el.ctrlThermal.classList.toggle('hidden', rig !== 'thermal');
-      el.ctrlPiezo.classList.toggle('hidden', rig !== 'piezo');
-
-      document.querySelectorAll('.rig-btn').forEach(btn => {
-        const r = btn.dataset.rig;
-        const colors = { kinetic: 'bg-sky-600', thermal: 'bg-amber-600', piezo: 'bg-purple-600' };
+      const rigBtns = document.querySelectorAll('#rigTabs button');
+      rigBtns.forEach(btn => {
+        const r = btn.getAttribute('data-rig');
         if (r === rig) {
-          btn.className = `rig-btn flex-1 px-2 py-1.5 text-[11px] font-semibold rounded-lg ${colors[r]} text-white shadow transition`;
+          btn.className = 'rig-btn flex-1 px-2 py-1.5 text-[11px] font-semibold rounded-lg bg-sky-600 text-white shadow transition';
         } else {
           btn.className = 'rig-btn flex-1 px-2 py-1.5 text-[11px] font-medium rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700 transition';
         }
       });
+      el.ctrlKinetic.classList.toggle('hidden', rig !== 'kinetic');
+      el.ctrlThermal.classList.toggle('hidden', rig !== 'thermal');
+      el.ctrlPiezo.classList.toggle('hidden', rig !== 'piezo');
 
-      const rigNames = { kinetic: 'Kinetic DC Flywheel', thermal: 'Seebeck Thermal (TEC1)', piezo: 'Piezo Vibration' };
-      el.activeRigBadge.textContent = rigNames[rig];
+      const rigBadges = {
+        kinetic: 'Kinetic DC Flywheel',
+        thermal: 'Seebeck Thermal Rig',
+        piezo: 'Piezo Vibration Cantilever'
+      };
+      el.activeRigBadge.textContent = rigBadges[rig] || 'MISO Tri-Source';
     };
 
-    // ── Pause / Reset ──
+    // ── Simulation Controls ──
     window.pauseSim = function() {
       SIM.paused = !SIM.paused;
       el.btnPause.textContent = SIM.paused ? '▶ Resume' : '⏸ Pause';
-      el.simStatusDot.className = SIM.paused
-        ? 'w-3 h-3 rounded-full bg-amber-400'
+      el.simStatusDot.className = SIM.paused 
+        ? 'w-3 h-3 rounded-full bg-amber-400' 
         : 'w-3 h-3 rounded-full bg-emerald-400';
     };
 
     window.resetSim = function() {
       SIM.currentSpeed = 0;
       SIM.targetSpeed = 0;
-      SIM.flywheelOmega = 0;
       SIM.wheelAngle = 0;
-      SIM.roadOffset = 0;
-      SIM.capVoltage = 0;
-      SIM.time = 0;
+      SIM.flywheelOmega = 0;
+      SIM.rotorAngle = 0;
+      SIM.capVoltage = 0.0;
       SIM.suspensionBounce = 0;
       SIM.shockCompression = 0;
+      SIM.chassisPitch = 0;
+      SIM.cantileverDisp = 0;
       SIM.waveHistory = [];
       SIM.vehicleState = 'idle';
       SIM.paused = false;
+      SIM.brakingBurst = 0;
+      SIM.thermalBurst = 0;
+      SIM.piezoBurst = 0;
+      SIM.cameraShake = 0;
       el.sliderSpeed.value = 0;
       el.btnPause.textContent = '⏸ Pause';
       el.simStatusDot.className = 'w-3 h-3 rounded-full bg-emerald-400';
       updateStateButtonStyles();
     };
 
-    // ── Slider Event Listeners ──
+    // ── Slider Event Listeners with Visual Reactions ──
     el.sliderSpeed.addEventListener('input', e => {
       SIM.targetSpeed = parseFloat(e.target.value);
       el.valTargetSpeed.textContent = `${Math.round(SIM.targetSpeed)} km/h`;
-      if (SIM.targetSpeed > SIM.currentSpeed + 5) SIM.vehicleState = 'accelerating';
-      else if (SIM.targetSpeed < SIM.currentSpeed - 5) SIM.vehicleState = 'decelerating';
+      if (SIM.targetSpeed > SIM.currentSpeed + 4) SIM.vehicleState = 'accelerating';
+      else if (SIM.targetSpeed < SIM.currentSpeed - 4) {
+        SIM.vehicleState = 'decelerating';
+        SIM.brakingBurst = 0.8;
+      }
       else if (SIM.targetSpeed > 2) SIM.vehicleState = 'cruising';
       else SIM.vehicleState = 'idle';
       updateStateButtonStyles();
@@ -552,30 +603,44 @@
     el.sliderInertia.addEventListener('input', e => {
       SIM.kInertia = parseFloat(e.target.value);
       el.valInertia.textContent = `${SIM.kInertia.toFixed(3)} kg·m²`;
+      SIM.brakingBurst = Math.max(SIM.brakingBurst, 0.4);
     });
+
     el.sliderCoupling.addEventListener('input', e => {
       SIM.kCoupling = parseFloat(e.target.value);
       el.valCoupling.textContent = `${SIM.kCoupling.toFixed(3)} V·s/rad`;
+      SIM.brakingBurst = Math.max(SIM.brakingBurst, 0.5);
     });
+
     el.sliderHotT.addEventListener('input', e => {
       SIM.tHot = parseFloat(e.target.value);
       el.valHotT.textContent = `${SIM.tHot}°C`;
+      SIM.thermalBurst = Math.min(1.0, SIM.thermalBurst + 0.35);
     });
+
     el.sliderColdT.addEventListener('input', e => {
       SIM.tCold = parseFloat(e.target.value);
       el.valColdT.textContent = `${SIM.tCold}°C`;
+      SIM.thermalBurst = Math.min(1.0, SIM.thermalBurst + 0.25);
     });
+
     el.sliderSeebeck.addEventListener('input', e => {
       SIM.seebeckCoeff = parseFloat(e.target.value);
       el.valSeebeck.textContent = `${SIM.seebeckCoeff.toFixed(3)} V/K`;
+      SIM.thermalBurst = Math.min(1.0, SIM.thermalBurst + 0.3);
     });
+
     el.sliderPiezoAmp.addEventListener('input', e => {
       SIM.piezoAmp = parseFloat(e.target.value);
       el.valPiezoAmp.textContent = `${SIM.piezoAmp.toFixed(1)} mm`;
+      SIM.piezoBurst = Math.min(1.0, SIM.piezoBurst + 0.5);
+      SIM.cameraShake = Math.max(SIM.cameraShake, SIM.piezoAmp * 0.8);
     });
+
     el.sliderPiezoFreq.addEventListener('input', e => {
       SIM.piezoFreq = parseFloat(e.target.value);
       el.valPiezoFreq.textContent = `${SIM.piezoFreq} Hz`;
+      SIM.piezoBurst = Math.min(1.0, SIM.piezoBurst + 0.4);
     });
 
     // ── Physics Simulation Step (20Hz) ──
@@ -584,15 +649,32 @@
 
       SIM.time += dt;
 
-      // 1. Vehicle speed interpolation
+      // Decay transient effect bursts
+      SIM.brakingBurst = Math.max(0, SIM.brakingBurst - dt * 1.8);
+      SIM.thermalBurst = Math.max(0, SIM.thermalBurst - dt * 1.5);
+      SIM.piezoBurst = Math.max(0, SIM.piezoBurst - dt * 2.2);
+      SIM.cameraShake = Math.max(0, SIM.cameraShake - dt * 6.0);
+
+      // 1. Vehicle Speed & Acceleration / Deceleration Dynamics
       const speedDiff = SIM.targetSpeed - SIM.currentSpeed;
-      const accelRate = SIM.vehicleState === 'decelerating' ? 25 : 15;
-      if (Math.abs(speedDiff) > 0.5) {
-        SIM.currentSpeed += Math.sign(speedDiff) * Math.min(accelRate * dt, Math.abs(speedDiff));
+      // Flywheel inertia physically resists vehicle acceleration and cushions deceleration
+      const inertiaFactor = 0.005 / Math.max(0.001, SIM.kInertia);
+      const accelRate = (SIM.vehicleState === 'decelerating' ? 24 : 14) * Math.min(1.4, Math.max(0.6, inertiaFactor));
+
+      let currentAccel = 0;
+      if (Math.abs(speedDiff) > 0.4) {
+        const stepChange = Math.sign(speedDiff) * Math.min(accelRate * dt, Math.abs(speedDiff));
+        SIM.currentSpeed += stepChange;
+        currentAccel = stepChange / dt; // km/h/s
       } else {
         SIM.currentSpeed = SIM.targetSpeed;
+        currentAccel = 0;
       }
       SIM.currentSpeed = Math.max(0, SIM.currentSpeed);
+
+      // Chassis dynamic pitch: acceleration squats rear (-), braking dives front (+)
+      const targetPitch = Math.max(-0.045, Math.min(0.055, (currentAccel / 30) * 0.035));
+      SIM.chassisPitch += (targetPitch - SIM.chassisPitch) * Math.min(1.0, dt * 6.0);
 
       if (SIM.currentSpeed < 0.5 && SIM.targetSpeed < 0.5 && SIM.vehicleState !== 'idle') {
         SIM.vehicleState = 'idle';
@@ -602,67 +684,94 @@
         updateStateButtonStyles();
       }
 
-      // Wheel animation
+      // Wheel rotation: exactly v = omega * r
       const speedMs = SIM.currentSpeed / 3.6;
-      const wheelRadius = 0.35;
-      SIM.wheelAngle += (speedMs / wheelRadius) * dt;
+      const wheelRadius = 0.35; // meters
+      const wheelAngularSpeed = speedMs / wheelRadius;
+      SIM.wheelAngle += wheelAngularSpeed * dt;
       SIM.roadOffset += speedMs * dt * 18;
 
       // 2. Road Bumps & Suspension Dynamics
-      // When piezo amplitude > 0.5mm, road bumps appear and cause real chassis displacement!
-      const bumpAmplitude = SIM.piezoAmp * 3.5;
-      const roadSpeedFactor = SIM.currentSpeed > 1 ? (SIM.currentSpeed / 50) : 0;
-      const bumpCycle = Math.sin(SIM.time * (SIM.piezoFreq * 0.4) * (roadSpeedFactor > 0 ? roadSpeedFactor : 1));
-      SIM.suspensionBounce = (bumpCycle * bumpAmplitude * (SIM.currentSpeed > 0 ? 1 : 0.15));
+      // Road bump displacement frequency scales with vehicle speed
+      const roadSpeedFactor = SIM.currentSpeed > 1 ? (SIM.currentSpeed / 45) : 0;
+      const bumpFreq = (SIM.piezoFreq * 0.35) * (roadSpeedFactor > 0 ? roadSpeedFactor : 0.8);
+      const bumpCycle = Math.sin(SIM.time * bumpFreq);
+      const bumpMagnitude = SIM.piezoAmp * 3.2 * (SIM.currentSpeed > 1 ? Math.min(1.5, 0.4 + roadSpeedFactor * 0.6) : 0.2);
+      
+      SIM.suspensionBounce = bumpCycle * bumpMagnitude;
+      // Front and rear shocks experience slight phase delay
       SIM.shockCompression = Math.max(-8, Math.min(8, SIM.suspensionBounce));
-      SIM.shockCompressionFront = SIM.shockCompression;
-      SIM.shockCompressionRear  = SIM.shockCompression;
+      SIM.shockCompressionFront = Math.max(-8, Math.min(8, Math.sin(SIM.time * bumpFreq) * bumpMagnitude));
+      SIM.shockCompressionRear  = Math.max(-8, Math.min(8, Math.sin(SIM.time * bumpFreq - 0.45) * bumpMagnitude));
 
-      // 3. Kinetic Flywheel / Motor Output
+      // PZT Cantilever Beam dynamic displacement (stylized slow-motion mechanical deflection)
+      // Visual vibration displays the real amplitude while running at visual rate (6-12 Hz) so the human eye sees the cantilever
+      const visualCantileverFreq = Math.min(14, 5 + SIM.piezoFreq * 0.12);
+      SIM.cantileverDisp = Math.sin(SIM.time * visualCantileverFreq * (Math.PI * 2)) * (SIM.piezoAmp * 2.5);
+
+      // 3. Kinetic Flywheel / Rotor Dynamics
+      // Inertia (kInertia) governs spin-up resistance and spin-down persistence
+      const spinDecayRate = 0.08 / Math.max(0.001, SIM.kInertia);
       if (SIM.vehicleState === 'decelerating' && SIM.currentSpeed > 1) {
-        const brakingIntensity = Math.abs(SIM.currentSpeed / 120);
-        SIM.flywheelOmega = Math.min(420, SIM.flywheelOmega + brakingIntensity * 850 * dt);
-      } else if (SIM.vehicleState === 'cruising') {
-        SIM.flywheelOmega = Math.max(0, (SIM.currentSpeed / 120) * 35);
+        const brakingIntensity = Math.abs(SIM.currentSpeed / 100);
+        // Spin-up rate scales inversely with flywheel inertia
+        const spinAccel = (brakingIntensity * 750) / Math.max(0.5, SIM.kInertia * 100);
+        SIM.flywheelOmega = Math.min(450, SIM.flywheelOmega + spinAccel * dt);
+      } else if (SIM.vehicleState === 'cruising' && SIM.currentSpeed > 2) {
+        const cruiseTarget = (SIM.currentSpeed / 120) * 40;
+        SIM.flywheelOmega += (cruiseTarget - SIM.flywheelOmega) * dt * 2.0;
       } else {
-        SIM.flywheelOmega *= Math.pow(0.92, dt * 10);
-        if (SIM.flywheelOmega < 0.5) SIM.flywheelOmega = 0;
+        SIM.flywheelOmega = Math.max(0, SIM.flywheelOmega - (spinDecayRate * SIM.flywheelOmega + 12) * dt);
       }
+      SIM.rotorAngle += SIM.flywheelOmega * dt * 0.35;
 
+      // Kinetic Electrical Output: V = k_coupling * omega
       const vKinRaw = SIM.kCoupling * SIM.flywheelOmega;
       SIM.vKinetic = Math.max(0, vKinRaw - VF_DIODE);
-      SIM.iKinetic = SIM.vKinetic > 0 ? (SIM.vKinetic / 28) * 1000 : 0;
+      SIM.iKinetic = SIM.vKinetic > 0 ? (SIM.vKinetic / 26.0) * 1000 : 0; // 26 ohm load impedance
 
-      // 4. Thermal (Seebeck) Output
-      const effectiveHot = SIM.tHot + (SIM.currentSpeed / 120) * 15;
-      const deltaT = Math.max(0, effectiveHot - SIM.tCold);
+      // 4. Thermal (Seebeck) Output: Non-linear alpha & temperature gradient
+      // Vehicle speed provides convective radiator cooling while exhaust manifold heats up
+      const effectiveHot = SIM.tHot + (SIM.currentSpeed / 120) * 14;
+      const effectiveCold = Math.max(10, SIM.tCold - (SIM.currentSpeed / 120) * 4);
+      const deltaT = Math.max(0, effectiveHot - effectiveCold);
       const vThermRaw = SIM.seebeckCoeff * deltaT;
       SIM.vThermal = Math.max(0, vThermRaw - VF_DIODE);
-      SIM.iThermal = SIM.vThermal > 0 ? (SIM.vThermal / 24) * 1000 : 0;
+      SIM.iThermal = SIM.vThermal > 0 ? (SIM.vThermal / 22.0) * 1000 : 0; // 22 ohm TEC internal + bus resistance
 
-      // 5. Piezo Output from Bumps & Suspension
-      const vibScale = SIM.currentSpeed > 2 ? 0.4 + 0.6 * (SIM.currentSpeed / 100) : 0.08;
-      const vPiezoRaw = SIM.piezoAmp * SIM.piezoFreq * 0.024 * vibScale;
-      const rectifiedAC = Math.abs(Math.sin(2 * Math.PI * SIM.piezoFreq * SIM.time));
-      const vPiezoInst = vPiezoRaw * (0.55 + 0.45 * rectifiedAC);
+      // 5. Piezo Output from Dynamic Suspension
+      // Output scales with displacement amplitude, frequency, and road speed vibration
+      const vibActivity = SIM.currentSpeed > 2 ? 0.35 + 0.65 * (SIM.currentSpeed / 90) : 0.12;
+      const vPiezoRaw = (SIM.piezoAmp * 0.75) * (SIM.piezoFreq / 28.0) * 1.85 * vibActivity;
+      // High-frequency rectified ripple
+      const rectifiedAC = Math.abs(Math.sin(Math.PI * SIM.piezoFreq * SIM.time));
+      const vPiezoInst = vPiezoRaw * (0.65 + 0.35 * rectifiedAC);
       SIM.vPiezo = Math.max(0, vPiezoInst - VF_DIODE);
-      SIM.iPiezo = SIM.vPiezo > 0 ? (SIM.vPiezo / 420) * 1000 : 0;
+      SIM.iPiezo = SIM.vPiezo > 0 ? (SIM.vPiezo / 380.0) * 1000 : 0; // high impedance PZT beam
 
-      // 6. Diode-OR Combining Bus
+      // 6. Layer 3: Diode-OR Combining Bus Architecture (Strict Engineering Truth)
+      // Highest potential forward-biases the common bus; weaker channels isolated by Schottky diodes
       SIM.vBus = Math.max(SIM.vKinetic, SIM.vThermal, SIM.vPiezo);
       SIM.totalCurrentMA = 0;
-      if (SIM.vKinetic >= SIM.vBus - 0.05) SIM.totalCurrentMA += SIM.iKinetic;
-      if (SIM.vThermal >= SIM.vBus - 0.05) SIM.totalCurrentMA += SIM.iThermal;
-      if (SIM.vPiezo >= SIM.vBus - 0.05) SIM.totalCurrentMA += SIM.iPiezo;
+      if (SIM.vKinetic >= Math.max(0.05, SIM.vBus - 0.08)) SIM.totalCurrentMA += SIM.iKinetic;
+      if (SIM.vThermal >= Math.max(0.05, SIM.vBus - 0.08)) SIM.totalCurrentMA += SIM.iThermal;
+      if (SIM.vPiezo >= Math.max(0.05, SIM.vBus - 0.08)) SIM.totalCurrentMA += SIM.iPiezo;
+
       SIM.totalPowerMW = SIM.vBus * SIM.totalCurrentMA;
 
-      // 7. Supercapacitor
+      // 7. Layer 4: Supercapacitor Buffer Dynamics (dV/dt = I_net / C)
       let iChargeA = 0;
-      if (SIM.vBus > SIM.capVoltage) iChargeA = SIM.totalCurrentMA / 1000;
-      const dV = (iChargeA * dt) / SIM.capFarads;
-      SIM.capVoltage = Math.max(0, Math.min(SIM.capMaxV, SIM.capVoltage + dV));
+      let iDischargeA = 0.008; // quiescent standby draw for vehicle logic
+      if (SIM.vBus > SIM.capVoltage) {
+        // Charging current limited by ESR
+        iChargeA = Math.min(SIM.totalCurrentMA / 1000, (SIM.vBus - SIM.capVoltage) / 1.2);
+      }
+      const iNetA = iChargeA - iDischargeA;
+      SIM.capNetCurrentA = iNetA;
+      const dV = (iNetA * dt) / SIM.capFarads;
+      SIM.capVoltage = Math.max(0.0, Math.min(SIM.capMaxV, SIM.capVoltage + dV));
 
-      // Waveform History
+      // Waveform History Buffer (20 Hz)
       SIM.waveHistory.push({
         t: SIM.time,
         vKin: SIM.vKinetic,
@@ -673,62 +782,68 @@
       if (SIM.waveHistory.length > SIM.maxWavePoints) SIM.waveHistory.shift();
     }
 
-    // ── Helper: Draw Spring Coil (Shock Absorbers) ──
+    // ── Helper: Draw Realistic Spring Coil (Shock Absorber) ──
     function drawCoilSpring(ctx, x, yTop, yBottom, coilRadius, turns, glowColor) {
       ctx.save();
       ctx.strokeStyle = glowColor;
-      ctx.lineWidth = 3.5;
+      ctx.lineWidth = 2.2;
       ctx.shadowColor = glowColor;
-      ctx.shadowBlur = 8;
+      ctx.shadowBlur = 6;
       ctx.beginPath();
-      const h = yBottom - yTop;
-      const step = h / turns;
       ctx.moveTo(x, yTop);
-      for (let i = 0; i <= turns; i++) {
-        const curY = yTop + i * step;
-        const xOffset = (i % 2 === 0 ? 1 : -1) * coilRadius;
-        ctx.lineTo(x + xOffset, curY);
+      const span = yBottom - yTop;
+      const step = span / (turns * 2);
+      for (let i = 0; i <= turns * 2; i++) {
+        const sy = yTop + i * step;
+        const sx = (i % 2 === 0) ? x - coilRadius : x + coilRadius;
+        ctx.lineTo(sx, sy);
       }
       ctx.lineTo(x, yBottom);
       ctx.stroke();
       ctx.restore();
     }
 
-    // ── High Graphics Canvas Rendering ──
+    // ── High-Fidelity Canvas Rendering ──
     function drawCarScene(ctx, W, H) {
-      ctx.setTransform(window.devicePixelRatio, 0, 0, window.devicePixelRatio, 0, 0);
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, W, H);
 
-      // --- 1. SUNRISE SKY WITH VISIBLE STARS ---
+      // Subtle dynamic camera shake during severe road bumps or hard braking
+      const shakeY = (Math.random() - 0.5) * SIM.cameraShake;
+      ctx.save();
+      if (SIM.cameraShake > 0.05) {
+        ctx.translate(0, shakeY);
+      }
+
+      // --- 1. SUNRISE SKY WITH STARS ---
       const horizonY = H * 0.54;
 
-      // Sunrise atmospheric gradient: deep navy top -> royal violet -> vivid morning coral -> radiant amber
       const skyGrad = ctx.createLinearGradient(0, 0, 0, horizonY);
-      skyGrad.addColorStop(0.0, '#0a0d1f'); // Deep night cosmos
-      skyGrad.addColorStop(0.3, '#1c1b3d'); // Twilight indigo
-      skyGrad.addColorStop(0.6, '#4a2545'); // Crimson violet
-      skyGrad.addColorStop(0.85, '#a14238'); // Morning amber coral
-      skyGrad.addColorStop(1.0, '#f97316'); // Glowing sunrise orange
+      skyGrad.addColorStop(0.0, '#0a0d1f');
+      skyGrad.addColorStop(0.3, '#1c1b3d');
+      skyGrad.addColorStop(0.6, '#4a2545');
+      skyGrad.addColorStop(0.85, '#a14238');
+      skyGrad.addColorStop(1.0, '#f97316');
       ctx.fillStyle = skyGrad;
       ctx.fillRect(0, 0, W, horizonY);
 
-      // Morning Stars visible in upper sky (Requirement #3)
+      // Morning Stars visible in upper sky
       ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
       for (let i = 0; i < 45; i++) {
         const sx = ((i * 127.3 + SIM.time * 0.15) % W);
         const sy = (i * 37.1) % (horizonY * 0.55);
         const starSize = 1.0 + (i % 3) * 0.5;
-        const twinkle = 0.4 + 0.6 * Math.sin(SIM.time * 2 + i);
+        const twinkle = 0.35 + 0.65 * Math.sin(SIM.time * 2 + i);
         ctx.globalAlpha = twinkle;
         ctx.fillRect(sx, sy, starSize, starSize);
       }
       ctx.globalAlpha = 1.0;
 
-      // --- 1B. CINEMATIC SUN BEHIND CAR ON LEFT OF EXISTING MOUNTAIN ---
-      const sunX = W * 0.20; // Positioned behind the car on the LEFT side of the mountain
+      // Sun behind car on left side of mountain
+      const sunX = W * 0.20;
       const sunY = horizonY - 28;
 
-      // Soft ambient dawn sunlight haze along horizon
       const horizonSunHaze = ctx.createLinearGradient(0, horizonY - 45, 0, horizonY + 12);
       horizonSunHaze.addColorStop(0.0, 'rgba(251, 146, 60, 0.0)');
       horizonSunHaze.addColorStop(0.6, 'rgba(251, 146, 60, 0.28)');
@@ -737,7 +852,6 @@
       ctx.fillStyle = horizonSunHaze;
       ctx.fillRect(0, horizonY - 45, W, 57);
 
-      // Sun atmospheric corona & warm golden-orange glow
       const sunAtmosphere = ctx.createRadialGradient(sunX, sunY, 12, sunX, sunY, 150);
       sunAtmosphere.addColorStop(0.0, 'rgba(255, 245, 210, 0.85)');
       sunAtmosphere.addColorStop(0.25, 'rgba(251, 191, 36, 0.50)');
@@ -748,18 +862,17 @@
       ctx.arc(sunX, sunY, 150, 0, Math.PI * 2);
       ctx.fill();
 
-      // Smooth circular sun core disc
       const sunDisc = ctx.createRadialGradient(sunX, sunY, 3, sunX, sunY, 26);
-      sunDisc.addColorStop(0.0, '#ffffff'); // Pure white-hot core
-      sunDisc.addColorStop(0.45, '#fef08a'); // Warm golden radiance
-      sunDisc.addColorStop(0.85, '#f97316'); // Sunrise amber perimeter
+      sunDisc.addColorStop(0.0, '#ffffff');
+      sunDisc.addColorStop(0.45, '#fef08a');
+      sunDisc.addColorStop(0.85, '#f97316');
       sunDisc.addColorStop(1.0, 'rgba(249, 115, 22, 0)');
       ctx.fillStyle = sunDisc;
       ctx.beginPath();
       ctx.arc(sunX, sunY, 26, 0, Math.PI * 2);
       ctx.fill();
 
-      // Distant sunrise mountain ridges (Original mountain geometry preserved 100%)
+      // Distant sunrise mountain ridges
       ctx.fillStyle = '#26152a';
       ctx.beginPath();
       ctx.moveTo(0, horizonY);
@@ -771,48 +884,40 @@
       ctx.closePath();
       ctx.fill();
 
-      // --- 2. 3D ELEVATED ROAD SURFACE WITH CINEMATIC SPEED EFFECTS ---
+      // --- 2. 3D ELEVATED ROAD SURFACE ---
       const roadTop = horizonY;
       const roadBottom = H;
       const roadHeight = roadBottom - roadTop;
 
-      // Asymmetrical perspective road plane
-      ctx.fillStyle = '#1c1f2b'; // Dark asphalt base
-      ctx.beginPath();
-      ctx.moveTo(0, roadTop);
-      ctx.lineTo(W, roadTop);
-      ctx.lineTo(W, roadBottom);
-      ctx.lineTo(0, roadBottom);
-      ctx.closePath();
-      ctx.fill();
+      ctx.fillStyle = '#1c1f2b';
+      ctx.fillRect(0, roadTop, W, roadHeight);
 
-      // Road texture gradient with sunrise road specular highlights
       const roadGloss = ctx.createLinearGradient(0, roadTop, 0, roadBottom);
-      roadGloss.addColorStop(0.0, 'rgba(251, 146, 60, 0.22)'); // Sunrise horizon reflection
+      roadGloss.addColorStop(0.0, 'rgba(251, 146, 60, 0.22)');
       roadGloss.addColorStop(0.15, 'rgba(60, 65, 80, 0.35)');
       roadGloss.addColorStop(0.6, '#171922');
       roadGloss.addColorStop(1.0, '#0f1118');
       ctx.fillStyle = roadGloss;
       ctx.fillRect(0, roadTop, W, roadHeight);
 
-      // Guardrail / Shoulder Curb (Left & Right Perspective)
+      // Guardrail / Shoulder Curb
       ctx.fillStyle = '#475569';
       ctx.fillRect(0, roadTop, W, 4);
       ctx.fillStyle = '#cbd5e1';
       ctx.fillRect(0, roadTop + 4, W, 2);
 
-      // Smoothly moving roadside reflector markers along shoulder curb
+      // Roadside reflector markers
       const markerSpacing = 110;
       const markerOffset = (SIM.roadOffset * 0.8) % markerSpacing;
       for (let pmx = -markerSpacing; pmx <= W + markerSpacing; pmx += markerSpacing) {
         const px = pmx - markerOffset;
         ctx.fillStyle = '#94a3b8';
         ctx.fillRect(px, roadTop - 7, 3, 9);
-        ctx.fillStyle = '#f59e0b'; // Amber reflector
+        ctx.fillStyle = '#f59e0b';
         ctx.fillRect(px, roadTop - 6, 3, 3);
       }
 
-      // Cinematic animated road-speed streaks (streaming leftward with vehicle speed)
+      // Speed streaks across road
       if (SIM.currentSpeed > 4) {
         ctx.save();
         const streakAlpha = Math.min(0.28, (SIM.currentSpeed / 120) * 0.28);
@@ -831,38 +936,34 @@
         ctx.restore();
       }
 
-      // Road markings: Scrolling dashed lane lines moving LEFT to match forward driving
+      // Dashed lane lines
       const laneY = roadTop + roadHeight * 0.52;
-      ctx.strokeStyle = '#f8fafc';
-      ctx.lineWidth = 4;
-      ctx.setLineDash([55, 45]);
-      ctx.lineDashOffset = (SIM.roadOffset % 100);
+      const dashLen = 50;
+      const gapLen = 40;
+      const totalDashCycle = dashLen + gapLen;
+      const laneOffset = (SIM.roadOffset * 1.4) % totalDashCycle;
+
+      ctx.save();
+      ctx.strokeStyle = '#fef08a';
+      ctx.lineWidth = 3.5;
+      ctx.setLineDash([dashLen, gapLen]);
+      ctx.lineDashOffset = laneOffset;
       ctx.beginPath();
       ctx.moveTo(0, laneY);
       ctx.lineTo(W, laneY);
       ctx.stroke();
+      ctx.restore();
 
-      // Double yellow median line on upper lane moving LEFT
-      const medianY = roadTop + roadHeight * 0.22;
-      ctx.strokeStyle = '#eab308';
-      ctx.lineWidth = 2.5;
-      ctx.setLineDash([35, 30]);
-      ctx.lineDashOffset = (SIM.roadOffset % 65);
-      ctx.beginPath();
-      ctx.moveTo(0, medianY);
-      ctx.lineTo(W, medianY);
-      ctx.stroke();
-      ctx.setLineDash([]);
-
-      // --- 3. DYNAMIC ROAD BUMPS (Requirement #6) ---
+      // Road Bumps & Rumble Strips
       const hasBumps = SIM.piezoAmp >= 0.8;
       el.hudRoadBumpNotice.textContent = hasBumps 
-        ? `Road: Bumpy Rumble Strips (Amp: ${SIM.piezoAmp.toFixed(1)}mm)` 
+        ? `Road: Bumpy Rumble Strips (Amp: ${SIM.piezoAmp.toFixed(1)}mm, ${SIM.piezoFreq}Hz)` 
         : `Road: Smooth Highway`;
       el.hudRoadBumpNotice.className = hasBumps ? "text-[9px] font-mono text-purple-400 font-bold" : "text-[9px] font-mono text-slate-400";
 
       if (hasBumps) {
-        ctx.fillStyle = '#a855f7'; // Purple rumble strip indicator
+        ctx.save();
+        ctx.fillStyle = '#a855f7';
         ctx.strokeStyle = '#e9d5ff';
         ctx.lineWidth = 1.5;
         const bumpSpacing = 85;
@@ -875,22 +976,18 @@
           ctx.fill();
           ctx.stroke();
         }
+        ctx.restore();
       }
 
-      // --- 4. CENTERED VEHICLE COORDINATES & SUSPENSION DYNAMICS ---
-      // Vehicle positioned at the HORIZONTAL CENTER of the scene
+      // --- 3. VEHICLE COORDINATES & SUSPENSION DYNAMICS ---
       const carW = Math.min(W * 0.38, 440);
       const carH = carW * 0.40;
-      const carX = (W - carW) * 0.5; // Firmly centered horizontally
-      
-      // Road elevation: placed firmly on the main perspective lane
+      const carX = (W - carW) * 0.5;
       const baseCarY = roadTop + roadHeight * 0.24;
-      const cy = baseCarY - SIM.suspensionBounce; // Dynamic bounce from road bumps & suspension!
+      const cy = baseCarY - SIM.suspensionBounce;
 
-      // --- 5. CLEARLY VISIBLE VEHICLE SHADOWS (Grounded & Directional) ---
+      // Cast body shadow & contact ground shadow
       ctx.save();
-
-      // A. Directional Cast Body Shadow (Sun is on the left, casting shadow forward-rightward)
       const castShadowX = carX + carW * 0.54;
       const castShadowY = cy + carH * 0.91;
       const castShadowGrad = ctx.createRadialGradient(
@@ -906,66 +1003,58 @@
       ctx.ellipse(castShadowX + 12, castShadowY + 2, carW * 0.52, carH * 0.22, 0.04, 0, Math.PI * 2);
       ctx.fill();
 
-      // B. Soft Grounding Contact Shadow directly under vehicle chassis (Ambient Occlusion)
+      // Soft contact shadow under chassis
       const contactShadowY = cy + carH * 0.89;
       const contactShadowGrad = ctx.createRadialGradient(
         carX + carW * 0.48, contactShadowY, 8,
         carX + carW * 0.48, contactShadowY, carW * 0.42
       );
-      contactShadowGrad.addColorStop(0.0, 'rgba(0, 0, 0, 0.85)');
-      contactShadowGrad.addColorStop(0.5, 'rgba(5, 8, 15, 0.55)');
+      contactShadowGrad.addColorStop(0.0, 'rgba(0, 0, 0, 0.88)');
+      contactShadowGrad.addColorStop(0.5, 'rgba(5, 8, 16, 0.60)');
       contactShadowGrad.addColorStop(1.0, 'rgba(0, 0, 0, 0.0)');
       ctx.fillStyle = contactShadowGrad;
       ctx.beginPath();
       ctx.ellipse(carX + carW * 0.48, contactShadowY, carW * 0.42, carH * 0.11, 0, 0, Math.PI * 2);
       ctx.fill();
 
-      // C. Distinct Contact Shadows beneath each wheel
-      const wheelR = carH * 0.25;
+      // Wheel Positions
       const frontWheelX = carX + carW * 0.78;
       const rearWheelX = carX + carW * 0.20;
       const wheelY = cy + carH * 0.78;
-      const wheelGroundY = wheelY + wheelR;
+      const wheelR = carH * 0.23;
 
-      [rearWheelX, frontWheelX].forEach(wx => {
-        // Direct tire-to-road contact patch shadow (tight, dark ellipse)
-        const tireContactGrad = ctx.createRadialGradient(wx, wheelGroundY - 2, 2, wx, wheelGroundY - 1, wheelR * 0.85);
-        tireContactGrad.addColorStop(0.0, 'rgba(0, 0, 0, 0.95)');
-        tireContactGrad.addColorStop(0.5, 'rgba(0, 0, 0, 0.65)');
-        tireContactGrad.addColorStop(1.0, 'rgba(0, 0, 0, 0.0)');
-        ctx.fillStyle = tireContactGrad;
+      // Wheel contact shadows
+      [frontWheelX, rearWheelX].forEach(wx => {
+        const wg = ctx.createRadialGradient(wx, wheelY + wheelR * 0.88, 2, wx, wheelY + wheelR * 0.88, wheelR * 1.1);
+        wg.addColorStop(0.0, 'rgba(0, 0, 0, 0.95)');
+        wg.addColorStop(0.6, 'rgba(0, 0, 0, 0.45)');
+        wg.addColorStop(1.0, 'rgba(0, 0, 0, 0.0)');
+        ctx.fillStyle = wg;
         ctx.beginPath();
-        ctx.ellipse(wx, wheelGroundY - 1, wheelR * 0.85, 4.5, 0, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Subtle directional cast shadow for each wheel (cast slightly to the right)
-        const wheelCastGrad = ctx.createRadialGradient(wx + 8, wheelGroundY + 1, 2, wx + 8, wheelGroundY + 1, wheelR * 0.75);
-        wheelCastGrad.addColorStop(0.0, 'rgba(0, 0, 0, 0.55)');
-        wheelCastGrad.addColorStop(1.0, 'rgba(0, 0, 0, 0.0)');
-        ctx.fillStyle = wheelCastGrad;
-        ctx.beginPath();
-        ctx.ellipse(wx + 8, wheelGroundY + 2, wheelR * 0.70, 5, 0.05, 0, Math.PI * 2);
+        ctx.ellipse(wx, wheelY + wheelR * 0.88, wheelR * 1.1, wheelR * 0.35, 0, 0, Math.PI * 2);
         ctx.fill();
       });
 
-      // D. Subtle Cyan Ground-Effect Neon Underglow
+      // Ambient Underglow (changes color with active energy generation)
+      let underglowColor = 'rgba(56, 189, 248, 0.25)'; // default cyan
+      if (SIM.vehicleState === 'decelerating') underglowColor = 'rgba(56, 189, 248, 0.55)';
+      else if (SIM.totalPowerMW > 20) underglowColor = 'rgba(52, 211, 153, 0.45)';
+      
       const underglow = ctx.createRadialGradient(carX + carW * 0.5, cy + carH * 0.88, 10, carX + carW * 0.5, cy + carH * 0.90, carW * 0.48);
-      underglow.addColorStop(0.0, 'rgba(6, 182, 212, 0.35)');
-      underglow.addColorStop(0.4, 'rgba(14, 165, 233, 0.18)');
+      underglow.addColorStop(0.0, underglowColor);
+      underglow.addColorStop(0.65, underglowColor.replace(/[\d\.]+\)$/, '0.12)'));
       underglow.addColorStop(1.0, 'rgba(0, 0, 0, 0.0)');
       ctx.fillStyle = underglow;
       ctx.beginPath();
       ctx.ellipse(carX + carW * 0.5, cy + carH * 0.90, carW * 0.48, carH * 0.18, 0, 0, Math.PI * 2);
       ctx.fill();
-
       ctx.restore();
 
-      // --- 6. REALISTIC HEADLIGHTS & VOLUMETRIC LIGHT BEAMS ---
+      // --- 4. HEADLIGHT BEAMS ---
       const hlX = carX + carW - 6;
       const hlY = cy + carH * 0.52;
-      const hlPulse = 0.92 + 0.08 * Math.sin(SIM.time * 5); // Subtle pulsating illumination
+      const hlPulse = 0.92 + 0.08 * Math.sin(SIM.time * 5);
 
-      // Outer soft atmospheric spread
       const outerBeam = ctx.createRadialGradient(hlX, hlY, 6, hlX + 240, hlY + 20, 260);
       outerBeam.addColorStop(0.0, `rgba(254, 240, 138, ${0.45 * hlPulse})`);
       outerBeam.addColorStop(0.3, `rgba(56, 189, 248, ${0.15 * hlPulse})`);
@@ -979,7 +1068,6 @@
       ctx.closePath();
       ctx.fill();
 
-      // Inner high-intensity focal cone
       const innerBeam = ctx.createRadialGradient(hlX, hlY, 2, hlX + 160, hlY + 15, 170);
       innerBeam.addColorStop(0.0, `rgba(255, 255, 255, ${0.90 * hlPulse})`);
       innerBeam.addColorStop(0.2, `rgba(254, 240, 138, ${0.55 * hlPulse})`);
@@ -994,9 +1082,16 @@
       ctx.closePath();
       ctx.fill();
 
-      // --- 7. VEHICLE CHASSIS & AERODYNAMIC BODY ---
+      // --- 5. VEHICLE CHASSIS & ROTATION WITH PITCH DYNAMICS ---
+      ctx.save();
+      // Apply chassis pitch rotation around center of gravity
+      const cgX = carX + carW * 0.5;
+      const cgY = cy + carH * 0.55;
+      ctx.translate(cgX, cgY);
+      ctx.rotate(SIM.chassisPitch);
+      ctx.translate(-cgX, -cgY);
 
-      // Upper Metallic Roof / Aero Glass Canopy
+      // Upper Roof
       const roofGrad = ctx.createLinearGradient(carX + carW * 0.25, cy - 8, carX + carW * 0.78, cy + 8);
       roofGrad.addColorStop(0.0, '#042f2e');
       roofGrad.addColorStop(0.5, '#0f766e');
@@ -1012,207 +1107,292 @@
 
       // Sculpted Cyber-Metallic Sports Car Body
       const bodyTeal = ctx.createLinearGradient(carX, cy - 4, carX, cy + carH);
-      bodyTeal.addColorStop(0.0, '#2dd4bf'); // High-gloss bright teal rim highlight
-      bodyTeal.addColorStop(0.2, '#0d9488'); // Deep vibrant cyber teal
-      bodyTeal.addColorStop(0.65, '#0f766e'); // Midnight metallic teal
-      bodyTeal.addColorStop(1.0, '#042f2e'); // Deep carbon undertone
+      bodyTeal.addColorStop(0.0, '#2dd4bf');
+      bodyTeal.addColorStop(0.2, '#0d9488');
+      bodyTeal.addColorStop(0.65, '#0f766e');
+      bodyTeal.addColorStop(1.0, '#042f2e');
       ctx.fillStyle = bodyTeal;
 
       ctx.beginPath();
-      // Sleek low-drag aerodynamic profile
-      ctx.moveTo(carX + 6, cy + carH * 0.76); // Rear diffuser bottom
-      ctx.lineTo(carX, cy + carH * 0.54);     // Rear aero winglet / bumper
-      ctx.lineTo(carX + 4, cy + carH * 0.38); // Integrated active rear spoiler
-      ctx.lineTo(carX + carW * 0.14, cy + carH * 0.20); // Fastback rear deck slope
-      ctx.lineTo(carX + carW * 0.32, cy);               // Low aero roof peak
-      ctx.lineTo(carX + carW * 0.68, cy);               // Roofline
-      ctx.lineTo(carX + carW * 0.88, cy + carH * 0.34); // Raked windshield
-      ctx.lineTo(carX + carW * 0.98, cy + carH * 0.48); // Low-slung hood
-      ctx.lineTo(carX + carW, cy + carH * 0.65);        // Shark-nose front fascia
-      ctx.lineTo(carX + carW - 14, cy + carH * 0.78);   // Carbon front splitter
-      
-      // Front wheel arch
+      ctx.moveTo(carX + 6, cy + carH * 0.76);
+      ctx.lineTo(carX, cy + carH * 0.54);
+      ctx.lineTo(carX + 4, cy + carH * 0.38);
+      ctx.lineTo(carX + carW * 0.14, cy + carH * 0.20);
+      ctx.lineTo(carX + carW * 0.32, cy);
+      ctx.lineTo(carX + carW * 0.68, cy);
+      ctx.lineTo(carX + carW * 0.88, cy + carH * 0.34);
+      ctx.lineTo(carX + carW * 0.98, cy + carH * 0.48);
+      ctx.lineTo(carX + carW, cy + carH * 0.65);
+      ctx.lineTo(carX + carW - 14, cy + carH * 0.78);
       ctx.arc(carX + carW * 0.78, cy + carH * 0.78, carH * 0.25, 0, Math.PI, true);
-      
-      // Aerodynamic side-skirt with rocker panel channel
       ctx.lineTo(carX + carW * 0.30, cy + carH * 0.78);
-      
-      // Rear wheel arch
       ctx.arc(carX + carW * 0.20, cy + carH * 0.78, carH * 0.25, 0, Math.PI, true);
-      
       ctx.closePath();
       ctx.fill();
 
-      // Sharp Dynamic Body Crease / LED Contour Light Strip
+      // Sharp Cyber-Metallic Body Crease Accent
       ctx.strokeStyle = '#5eead4';
-      ctx.lineWidth = 2.2;
-      ctx.shadowColor = '#2dd4bf';
-      ctx.shadowBlur = 6;
+      ctx.lineWidth = 1.2;
       ctx.beginPath();
       ctx.moveTo(carX + carW * 0.06, cy + carH * 0.44);
       ctx.quadraticCurveTo(carX + carW * 0.5, cy + carH * 0.46, carX + carW * 0.96, cy + carH * 0.46);
       ctx.stroke();
-      ctx.shadowBlur = 0;
 
-      // Carbon Fiber Side Skirt & Lower Aerodynamic Diffuser
-      ctx.fillStyle = '#090d16';
-      ctx.beginPath();
-      ctx.rect(carX + carW * 0.28, cy + carH * 0.73, carW * 0.42, carH * 0.06);
-      ctx.fill();
+      // Carbon Fiber Side Skirt
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(carX + carW * 0.28, cy + carH * 0.73, carW * 0.42, carH * 0.06);
 
-      // --- TINTED CANOPY & GLASS COCKPIT ---
+      // Glass Cockpit / Windshield
       const winGrad = ctx.createLinearGradient(carX, cy, carX, cy + carH * 0.4);
-      winGrad.addColorStop(0.0, '#030712');
-      winGrad.addColorStop(0.6, '#0f172a');
-      winGrad.addColorStop(1.0, '#1e293b');
+      winGrad.addColorStop(0.0, 'rgba(15, 23, 42, 0.85)');
+      winGrad.addColorStop(0.5, 'rgba(30, 41, 59, 0.60)');
+      winGrad.addColorStop(1.0, 'rgba(56, 189, 248, 0.18)');
       ctx.fillStyle = winGrad;
+      ctx.beginPath();
+      ctx.moveTo(carX + carW * 0.35, cy + 4);
+      ctx.lineTo(carX + carW * 0.66, cy + 4);
+      ctx.lineTo(carX + carW * 0.84, cy + carH * 0.34);
+      ctx.lineTo(carX + carW * 0.70, cy + carH * 0.35);
+      ctx.lineTo(carX + carW * 0.33, cy + carH * 0.35);
+      ctx.lineTo(carX + carW * 0.18, cy + carH * 0.22);
+      ctx.closePath();
+      ctx.fill();
       ctx.strokeStyle = '#38bdf8';
-      ctx.lineWidth = 1.6;
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
 
-      // Front Cockpit Window
-      ctx.beginPath();
-      ctx.moveTo(carX + carW * 0.52, cy + 4);
-      ctx.lineTo(carX + carW * 0.68, cy + 4);
-      ctx.lineTo(carX + carW * 0.84, cy + carH * 0.35);
-      ctx.lineTo(carX + carW * 0.52, cy + carH * 0.35);
-      ctx.closePath();
-      ctx.fill(); ctx.stroke();
+      // Glowing Cyan LED Headlight Cluster
+      ctx.fillStyle = '#fef08a';
+      ctx.shadowColor = '#38bdf8';
+      ctx.shadowBlur = 12;
+      ctx.fillRect(carX + carW - 8, cy + carH * 0.50, 8, carH * 0.08);
 
-      // Rear Cockpit Window
-      ctx.beginPath();
-      ctx.moveTo(carX + carW * 0.30, cy + 4);
-      ctx.lineTo(carX + carW * 0.50, cy + 4);
-      ctx.lineTo(carX + carW * 0.50, cy + carH * 0.35);
-      ctx.lineTo(carX + carW * 0.18, cy + carH * 0.35);
-      ctx.closePath();
-      ctx.fill(); ctx.stroke();
-
-      // Metallic Cyan-Gold Hybrid Harvester Insignia on Door
-      ctx.fillStyle = '#38bdf8';
-      ctx.shadowColor = '#00f2fe';
-      ctx.shadowBlur = 8;
-      ctx.beginPath();
-      const boltX = carX + carW * 0.44;
-      const boltY = cy + carH * 0.46;
-      ctx.moveTo(boltX + 13, boltY);
-      ctx.lineTo(boltX, boltY + 16);
-      ctx.lineTo(boltX + 8, boltY + 16);
-      ctx.lineTo(boltX + 2, boltY + 30);
-      ctx.lineTo(boltX + 18, boltY + 12);
-      ctx.lineTo(boltX + 10, boltY + 12);
-      ctx.closePath();
-      ctx.fill();
+      // Crimson LED Taillight Strip with Braking Bloom
+      const brakeGlowIntensity = SIM.vehicleState === 'decelerating' ? 24 : 8;
+      ctx.fillStyle = '#ef4444';
+      ctx.shadowColor = '#ef4444';
+      ctx.shadowBlur = brakeGlowIntensity;
+      ctx.fillRect(carX, cy + carH * 0.40, 7, carH * 0.16);
       ctx.shadowBlur = 0;
 
-      // Dual Slim Matrix LED Headlight Units with Projector Lens
-      ctx.fillStyle = '#ffffff';
-      ctx.shadowColor = '#bae6fd';
-      ctx.shadowBlur = 10;
-      ctx.beginPath();
-      ctx.moveTo(carX + carW - 18, cy + carH * 0.44);
-      ctx.lineTo(carX + carW - 2, cy + carH * 0.47);
-      ctx.lineTo(carX + carW - 4, cy + carH * 0.54);
-      ctx.lineTo(carX + carW - 20, cy + carH * 0.51);
-      ctx.closePath();
-      ctx.fill();
-      ctx.shadowBlur = 0;
-
-      // Full-Width Cyber LED Taillight Bar
-      ctx.fillStyle = SIM.vehicleState === 'decelerating' ? '#ff2222' : '#f43f5e';
-      ctx.shadowColor = '#f43f5e';
-      ctx.shadowBlur = SIM.vehicleState === 'decelerating' ? 18 : 8;
-      ctx.beginPath();
-      ctx.rect(carX, cy + carH * 0.40, 7, carH * 0.16);
-      ctx.fill();
-      ctx.shadowBlur = 0;
-
-      // --- 8. INTERNAL X-RAY ENGINE, SHOCK ABSORBERS, MOTOR & SUPERCAPACITOR ---
+      // --- 6. DETAILED X-RAY INTERNAL SUBSYSTEMS ---
       ctx.save();
-      ctx.globalAlpha = 0.88;
+      ctx.globalAlpha = 0.90;
 
-      // A. ENGINE (Under Hood / Front Section) — Pulsing thermal glow tied to hotTemp
-      const engineX = carX + carW * 0.72;
-      const engineY = cy + carH * 0.38;
-      const engineHeatGlow = ctx.createRadialGradient(engineX + 15, engineY + 15, 2, engineX + 15, engineY + 15, 35);
-      engineHeatGlow.addColorStop(0.0, 'rgba(251, 146, 60, 0.85)');
-      engineHeatGlow.addColorStop(0.6, 'rgba(234, 88, 12, 0.45)');
+      // ─────────────────────────────────────────────────────────────
+      // A. ENGINE & THERMOELECTRIC (TEC1-12706) HARVESTER
+      // Reacts directly to hotTemp, coldTemp, and Seebeck coefficient
+      // ─────────────────────────────────────────────────────────────
+      const engineX = carX + carW * 0.70;
+      const engineY = cy + carH * 0.36;
+      const tNorm = Math.min(1.0, Math.max(0.0, (SIM.tHot - 25) / 95.0)); // 0 to 1
+      const deltaT = Math.max(0, SIM.tHot - SIM.tCold);
+
+      // Thermal glow intensity & chromatic warmth proportional to temperature
+      const glowRadius = 24 + tNorm * 32 + SIM.thermalBurst * 18;
+      const engineHeatGlow = ctx.createRadialGradient(engineX + 16, engineY + 14, 2, engineX + 16, engineY + 14, glowRadius);
+      // Hot side color shift: golden yellow -> searing vermilion
+      const rHot = Math.round(230 + tNorm * 25);
+      const gHot = Math.round(180 - tNorm * 110);
+      const bHot = Math.round(40 - tNorm * 30);
+      engineHeatGlow.addColorStop(0.0, `rgba(${rHot}, ${gHot}, ${bHot}, ${0.75 + tNorm * 0.25})`);
+      engineHeatGlow.addColorStop(0.55, `rgba(234, 88, 12, ${0.30 + tNorm * 0.35})`);
       engineHeatGlow.addColorStop(1.0, 'rgba(234, 88, 12, 0.0)');
       ctx.fillStyle = engineHeatGlow;
-      ctx.fillRect(engineX - 10, engineY - 5, 55, 45);
+      ctx.fillRect(engineX - 16, engineY - 14, 68, 60);
 
-      // Detailed Engine Block Geometry with Wireframe Manifolds
-      ctx.strokeStyle = '#f97316';
-      ctx.lineWidth = 2;
-      ctx.shadowColor = '#f97316';
-      ctx.shadowBlur = 10;
-      ctx.strokeRect(engineX, engineY + 4, 32, 22);
+      // Engine block outline & internal cylinder wireframe
+      ctx.strokeStyle = `rgb(${rHot}, ${gHot}, ${bHot})`;
+      ctx.lineWidth = 2.2;
+      ctx.shadowColor = `rgb(${rHot}, ${gHot}, ${bHot})`;
+      ctx.shadowBlur = 8 + tNorm * 8;
+      ctx.strokeRect(engineX, engineY + 4, 34, 22);
       ctx.beginPath();
-      ctx.moveTo(engineX + 6, engineY + 4);
-      ctx.lineTo(engineX + 6, engineY - 4);
+      ctx.moveTo(engineX + 8, engineY + 4);
+      ctx.lineTo(engineX + 8, engineY - 4);
       ctx.lineTo(engineX + 26, engineY - 4);
       ctx.lineTo(engineX + 26, engineY + 4);
       ctx.stroke();
 
-      // B. REAR DC GENERATOR MOTOR (Axle Deceleration Harvester)
+      // B. TEC1-12706 Thermoelectric Module (Sandwiched between Engine and Cold Radiator)
+      const tecX = engineX - 14;
+      const tecY = engineY + 4;
+      const tecW = 12;
+      const tecH = 22;
+
+      // Ceramic substrate plates
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(tecX, tecY, 2, tecH); // hot ceramic plate
+      ctx.fillRect(tecX + tecW - 2, tecY, 2, tecH); // cold ceramic plate
+
+      // Distinct Thermal Gradient between hot and cold surfaces
+      const tecGrad = ctx.createLinearGradient(tecX, tecY, tecX + tecW, tecY);
+      tecGrad.addColorStop(0.0, `rgb(${rHot}, ${gHot}, ${bHot})`); // hot face
+      tecGrad.addColorStop(1.0, '#38bdf8'); // cold face (ambient radiator)
+      ctx.fillStyle = tecGrad;
+      ctx.fillRect(tecX + 2, tecY + 1, tecW - 4, tecH - 2);
+
+      // Bismuth Telluride (Bi2Te3) semiconductor pellets wireframe
+      ctx.strokeStyle = '#0f172a';
+      ctx.lineWidth = 1;
+      for (let p = 0; p < 4; p++) {
+        ctx.strokeRect(tecX + 3, tecY + 2 + p * 5, tecW - 6, 3);
+      }
+
+      // TEC Visual Intensity indicator (proportional to deltaT and Seebeck electrical conversion)
+      const tecOutputPulse = SIM.vThermal > 0.1 ? (0.6 + 0.4 * Math.sin(SIM.time * 8)) : 0.2;
+      ctx.strokeStyle = `rgba(251, 191, 36, ${tecOutputPulse})`;
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(tecX - 1, tecY - 1, tecW + 2, tecH + 2);
+
+      // Animated Heat Shimmer Rising Above Thermal Module
+      if (deltaT > 10) {
+        ctx.save();
+        ctx.lineWidth = 1.4;
+        const shimmerAlpha = Math.min(0.7, (deltaT / 90.0) * 0.7);
+        for (let sh of heatShimmerParticles) {
+          sh.yProgress = (sh.yProgress + sh.speed * dt * 0.8) % 1.0;
+          const sx = engineX + 16 + sh.xOffset;
+          const sy = engineY - 4 - sh.yProgress * 26;
+          const waveX = sx + Math.sin(sh.yProgress * Math.PI * 4 + SIM.time * 6 + sh.phase) * sh.amplitude;
+          ctx.strokeStyle = `rgba(251, 146, 60, ${(1.0 - sh.yProgress) * shimmerAlpha})`;
+          ctx.beginPath();
+          ctx.moveTo(waveX - 2, sy);
+          ctx.quadraticCurveTo(waveX, sy - 3, waveX + 2, sy - 6);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      // ─────────────────────────────────────────────────────────────
+      // B. REAR DC AXLE GENERATOR & ROTOR
+      // Rotates synchronized with vehicle speed and inertia decay
+      // ─────────────────────────────────────────────────────────────
       const genX = carX + carW * 0.22;
       const genY = cy + carH * 0.62;
-      const genGlow = ctx.createRadialGradient(genX, genY, 3, genX, genY, 30);
-      genGlow.addColorStop(0.0, 'rgba(56, 189, 248, 0.9)');
-      genGlow.addColorStop(0.6, 'rgba(14, 165, 233, 0.45)');
+      
+      // Generator blue electromagnetic excitation aura
+      const genGlowRadius = 18 + (SIM.flywheelOmega / 400) * 22 + SIM.brakingBurst * 18;
+      const genGlow = ctx.createRadialGradient(genX, genY, 3, genX, genY, genGlowRadius);
+      const genGlowAlpha = Math.min(0.95, 0.2 + (SIM.flywheelOmega / 400) * 0.75 + SIM.brakingBurst * 0.5);
+      genGlow.addColorStop(0.0, `rgba(56, 189, 248, ${genGlowAlpha})`);
+      genGlow.addColorStop(0.6, `rgba(14, 165, 233, ${genGlowAlpha * 0.5})`);
       genGlow.addColorStop(1.0, 'rgba(14, 165, 233, 0.0)');
       ctx.fillStyle = genGlow;
-      ctx.fillRect(genX - 25, genY - 20, 50, 40);
+      ctx.fillRect(genX - genGlowRadius, genY - genGlowRadius, genGlowRadius * 2, genGlowRadius * 2);
 
-      // Rotating Motor Rotor Visual inside generator
+      // Stator Housing
+      ctx.strokeStyle = '#0284c7';
+      ctx.lineWidth = 2.4;
+      ctx.strokeRect(genX - 14, genY - 14, 28, 28);
+
+      // Rotating Generator Rotor Armature (Synchronized to flywheelOmega)
       ctx.save();
       ctx.translate(genX, genY);
-      ctx.rotate(SIM.flywheelOmega * 0.08);
+      ctx.rotate(SIM.rotorAngle);
       ctx.strokeStyle = '#38bdf8';
-      ctx.lineWidth = 2.5;
+      ctx.lineWidth = 2.4;
       ctx.shadowColor = '#38bdf8';
-      ctx.shadowBlur = 8;
-      ctx.strokeRect(-12, -12, 24, 24);
+      ctx.shadowBlur = 8 + (SIM.flywheelOmega / 400) * 10;
+      ctx.strokeRect(-10, -10, 20, 20);
       ctx.beginPath();
-      ctx.moveTo(-12, 0); ctx.lineTo(12, 0);
-      ctx.moveTo(0, -12); ctx.lineTo(0, 12);
+      ctx.moveTo(-10, 0); ctx.lineTo(10, 0);
+      ctx.moveTo(0, -10); ctx.lineTo(0, 10);
       ctx.stroke();
+      // Copper coil windings
+      ctx.fillStyle = '#f59e0b';
+      ctx.fillRect(-8, -4, 4, 8);
+      ctx.fillRect(4, -4, 4, 8);
       ctx.restore();
 
-      // C. SUSPENSION SHOCK ABSORBERS (Dynamically responding to bumps)
+      // ─────────────────────────────────────────────────────────────
+      // C. SUSPENSION DYNAMICS & CLEARLY VISIBLE PZT CANTILEVER
+      // ─────────────────────────────────────────────────────────────
       const frontShockX = carX + carW * 0.78;
-      drawCoilSpring(ctx, frontShockX, cy + carH * 0.48 - SIM.shockCompression, cy + carH * 0.76, 7.5, 6, '#c084fc');
-      
       const rearShockX = carX + carW * 0.22;
-      drawCoilSpring(ctx, rearShockX, cy + carH * 0.48 - SIM.shockCompression, cy + carH * 0.76, 7.5, 6, '#c084fc');
 
-      // Interconnecting Bus Conduits
-      ctx.strokeStyle = '#34d399';
-      ctx.lineWidth = 2.5;
-      ctx.shadowColor = '#34d399';
-      ctx.shadowBlur = 8;
+      // Front & Rear Shock Absorber Coil Springs
+      drawCoilSpring(ctx, frontShockX, cy + carH * 0.48 - SIM.shockCompressionFront, cy + carH * 0.76, 7.5, 6, '#c084fc');
+      drawCoilSpring(ctx, rearShockX, cy + carH * 0.48 - SIM.shockCompressionRear, cy + carH * 0.76, 7.5, 6, '#c084fc');
+
+      // Clearly visible Piezoelectric Cantilever Harvester Unit
+      // Mounted adjacent to the front suspension upright
+      const pztBaseX = frontShockX - 32;
+      const pztBaseY = cy + carH * 0.58;
+      const pztLength = 26;
+
+      // Rigid mounting clamp
+      ctx.fillStyle = '#64748b';
+      ctx.fillRect(pztBaseX - 4, pztBaseY - 6, 6, 12);
+
+      // Dynamic Cantilever Beam with stylized displacement deflection
+      const tipDeflection = SIM.cantileverDisp; // proportional to piezoAmp
+      ctx.save();
+      ctx.strokeStyle = '#c084fc';
+      ctx.lineWidth = 2.8;
+      ctx.shadowColor = '#a855f7';
+      ctx.shadowBlur = 6 + (SIM.piezoAmp / 4.0) * 8;
       ctx.beginPath();
-      ctx.moveTo(genX, genY);
-      ctx.lineTo(carX + carW * 0.48, genY + 4);
-      ctx.lineTo(engineX, engineY + 15);
+      ctx.moveTo(pztBaseX, pztBaseY);
+      ctx.quadraticCurveTo(pztBaseX + pztLength * 0.5, pztBaseY, pztBaseX + pztLength, pztBaseY + tipDeflection);
       ctx.stroke();
-      
-      // D. GLOWING SUPERCAPACITOR BUFFER (Central Energy Storage & Power Management)
-      const capBoxX = carX + carW * 0.42;
-      const capBoxY = cy + carH * 0.63;
-      const capW = 44;
-      const capH = 16;
+
+      // Inertial Tungsten Tip Mass (Nut / Proof Mass)
+      const tipX = pztBaseX + pztLength;
+      const tipY = pztBaseY + tipDeflection;
+      ctx.fillStyle = '#fbbf24'; // Brass/gold tip mass
+      ctx.shadowColor = '#fbbf24';
+      ctx.shadowBlur = 6;
+      ctx.beginPath();
+      ctx.arc(tipX, tipY, 3.8, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+
+      // Micro full-bridge rectifier chip next to cantilever
+      ctx.fillStyle = '#1e1b4b';
+      ctx.strokeStyle = '#c084fc';
+      ctx.lineWidth = 1.2;
+      ctx.strokeRect(pztBaseX - 22, pztBaseY - 5, 14, 10);
+      ctx.fillStyle = '#e9d5ff';
+      ctx.font = '7px monospace';
+      ctx.fillText('PZT', pztBaseX - 20, pztBaseY + 3);
+
+      // ─────────────────────────────────────────────────────────────
+      // D. GLOWING SUPERCAPACITOR BUFFER & COMBINING BUS
+      // ─────────────────────────────────────────────────────────────
+      const capBoxX = carX + carW * 0.40;
+      const capBoxY = cy + carH * 0.61;
+      const capW = 48;
+      const capH = 18;
       const soc = Math.max(0, Math.min(1, SIM.capVoltage / SIM.capMaxV));
+
+      // Interconnecting Diode-OR Conduits (Isolated branches feeding central bus)
+      ctx.strokeStyle = 'rgba(52, 211, 153, 0.75)';
+      ctx.lineWidth = 2.0;
+      ctx.shadowColor = '#34d399';
+      ctx.shadowBlur = 6;
+      ctx.beginPath();
+      // Kinetic conduit: gen -> cap
+      ctx.moveTo(genX + 14, genY);
+      ctx.lineTo(capBoxX, capBoxY + 8);
+      // Thermal conduit: tec -> cap
+      ctx.moveTo(tecX, tecY + 10);
+      ctx.lineTo(capBoxX + capW, capBoxY + 6);
+      // Piezo conduit: pzt bridge -> cap
+      ctx.moveTo(pztBaseX - 8, pztBaseY);
+      ctx.lineTo(capBoxX + capW * 0.8, capBoxY);
+      ctx.stroke();
 
       // Supercapacitor Housing
       ctx.fillStyle = '#064e3b';
-      ctx.strokeStyle = '#10b981';
-      ctx.lineWidth = 2;
+      ctx.strokeStyle = SIM.capVoltage > 2.5 ? '#34d399' : '#10b981';
+      ctx.lineWidth = 2.2;
       ctx.shadowColor = '#10b981';
       ctx.shadowBlur = 10;
       ctx.strokeRect(capBoxX, capBoxY, capW, capH);
       ctx.fillRect(capBoxX, capBoxY, capW, capH);
 
-      // Active Internal Energy Fill Bar
+      // Active Internal Energy Fill Bar (changes hue with state of charge)
       const capFillGrad = ctx.createLinearGradient(capBoxX, capBoxY, capBoxX + capW, capBoxY);
       capFillGrad.addColorStop(0.0, '#0284c7');
       capFillGrad.addColorStop(0.5, '#10b981');
@@ -1220,17 +1400,18 @@
       ctx.fillStyle = capFillGrad;
       ctx.fillRect(capBoxX + 2, capBoxY + 2, (capW - 4) * soc, capH - 4);
 
-      // Supercapacitor Micro-readout
+      // Micro-readout
       ctx.fillStyle = '#ffffff';
       ctx.font = '8px monospace';
       ctx.textAlign = 'center';
       ctx.shadowBlur = 0;
-      ctx.fillText(`${(soc * 100).toFixed(0)}%`, capBoxX + capW * 0.5, capBoxY + 11);
+      ctx.fillText(`${(soc * 100).toFixed(0)}%`, capBoxX + capW * 0.5, capBoxY + 12);
 
-      // Animated Supercapacitor Charging Aura Rings
-      if (SIM.totalPowerMW > 0.5 && SIM.vBus > SIM.capVoltage) {
+      // Dynamic Capacitor Aura: Pulsing charging rings when charging, subtle amber discharge when powering load
+      if (SIM.capNetCurrentA > 0.005) {
+        // Charging: green concentric expanding pulse waves
         const ringProgress = (SIM.time * 2.8) % 1;
-        const ringRadius = 14 + ringProgress * 20;
+        const ringRadius = 14 + ringProgress * 22;
         ctx.strokeStyle = `rgba(52, 211, 153, ${1 - ringProgress})`;
         ctx.lineWidth = 1.8;
         ctx.shadowColor = '#34d399';
@@ -1240,68 +1421,162 @@
         ctx.stroke();
       }
 
-      ctx.restore(); // End internal x-ray
+      ctx.restore(); // end internal x-ray
 
-      // --- 9. 3D WHEELS & ROTATING ALLOY RIMS WITH BRAKE CALIPERS ---
-      [rearWheelX, frontWheelX].forEach(wx => {
+      // ─────────────────────────────────────────────────────────────
+      // E. ANIMATED ELECTRICAL HARVESTING PARTICLES (Actual Pathways)
+      // Particle flow speed & density map strictly to modeled current
+      // ─────────────────────────────────────────────────────────────
+
+      // 1. Kinetic Pathway (BLUE): Rear Axle Generator -> Central Supercapacitor
+      if (SIM.vKinetic > 0.05 || SIM.flywheelOmega > 2) {
+        ctx.save();
+        ctx.fillStyle = '#38bdf8';
+        ctx.shadowColor = '#0284c7';
+        ctx.shadowBlur = 8;
+        const currentRatio = Math.min(1.0, SIM.iKinetic / 90.0);
+        const kCount = Math.min(POOL_SIZE, Math.floor(currentRatio * 18) + 4);
+        const particleSpeed = 1.2 + currentRatio * 2.5;
+
+        for (let p = 0; p < kCount; p++) {
+          const pt = kineticParticles[p];
+          pt.progress = (pt.progress + pt.speed * particleSpeed * dt * 0.7) % 1.0;
+          const prog = pt.progress;
+          // Interpolate along actual conduit
+          const px = (genX + 14) + prog * (capBoxX - (genX + 14));
+          const py = genY + prog * ((capBoxY + 8) - genY) + Math.sin(prog * Math.PI * 4 + SIM.time * 12) * pt.lateral;
+          const pSize = 1.8 + currentRatio * 1.5;
+          ctx.beginPath();
+          ctx.arc(px, py, pSize, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        // Active energy pulse line
+        ctx.strokeStyle = `rgba(56, 189, 248, ${0.3 + currentRatio * 0.5})`;
+        ctx.lineWidth = 1.8;
+        ctx.beginPath();
+        ctx.moveTo(genX + 14, genY);
+        ctx.lineTo(capBoxX, capBoxY + 8);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      // 2. Thermal Pathway (AMBER): TEC Module -> Central Supercapacitor
+      if (SIM.vThermal > 0.05) {
+        ctx.save();
+        ctx.fillStyle = '#fbbf24';
+        ctx.shadowColor = '#ea580c';
+        ctx.shadowBlur = 8;
+        const currentRatio = Math.min(1.0, SIM.iThermal / 80.0);
+        const tCount = Math.min(POOL_SIZE, Math.floor(currentRatio * 18) + 4);
+        const particleSpeed = 1.0 + currentRatio * 2.2;
+
+        for (let p = 0; p < tCount; p++) {
+          const pt = thermalParticles[p];
+          pt.progress = (pt.progress + pt.speed * particleSpeed * dt * 0.7) % 1.0;
+          const prog = pt.progress;
+          const px = tecX - prog * (tecX - (capBoxX + capW));
+          const py = (tecY + 10) + prog * ((capBoxY + 6) - (tecY + 10)) + Math.sin(prog * Math.PI * 4 + SIM.time * 10) * pt.lateral;
+          const pSize = 1.8 + currentRatio * 1.5;
+          ctx.beginPath();
+          ctx.arc(px, py, pSize, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.strokeStyle = `rgba(251, 191, 36, ${0.3 + currentRatio * 0.5})`;
+        ctx.lineWidth = 1.8;
+        ctx.beginPath();
+        ctx.moveTo(tecX, tecY + 10);
+        ctx.lineTo(capBoxX + capW, capBoxY + 6);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      // 3. Piezoelectric Pathway (PURPLE): PZT Rectifier -> Central Supercapacitor
+      if (SIM.vPiezo > 0.05 || SIM.piezoAmp >= 0.6) {
+        ctx.save();
+        ctx.fillStyle = '#c084fc';
+        ctx.shadowColor = '#a855f7';
+        ctx.shadowBlur = 8;
+        const currentRatio = Math.min(1.0, SIM.iPiezo / 8.0);
+        const vCount = Math.min(POOL_SIZE, Math.floor(currentRatio * 14) + 4);
+        const particleSpeed = 1.4 + (SIM.piezoFreq / 40.0) * 1.8;
+
+        for (let p = 0; p < vCount; p++) {
+          const pt = piezoParticles[p];
+          pt.progress = (pt.progress + pt.speed * particleSpeed * dt * 0.7) % 1.0;
+          const prog = pt.progress;
+          const px = (pztBaseX - 10) - prog * ((pztBaseX - 10) - (capBoxX + capW * 0.8));
+          const py = pztBaseY + prog * (capBoxY - pztBaseY) + Math.cos(prog * Math.PI * 4 + SIM.time * 14) * pt.lateral;
+          const pSize = 1.7 + currentRatio * 1.4;
+          ctx.beginPath();
+          ctx.arc(px, py, pSize, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.strokeStyle = `rgba(192, 132, 252, ${0.3 + currentRatio * 0.5})`;
+        ctx.lineWidth = 1.8;
+        ctx.beginPath();
+        ctx.moveTo(pztBaseX - 10, pztBaseY);
+        ctx.lineTo(capBoxX + capW * 0.8, capBoxY);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      // --- 7. 3D WHEELS & ROTATING ALLOY RIMS WITH BRAKE CALIPERS ---
+      [rearWheelX, frontWheelX].forEach((wx, idx) => {
         ctx.save();
         ctx.translate(wx, wheelY);
 
-        // Low-Profile High-Performance Tire
-        ctx.fillStyle = '#090d16';
+        // Rubber Tire
+        ctx.fillStyle = '#0f172a';
         ctx.beginPath();
         ctx.arc(0, 0, wheelR, 0, Math.PI * 2);
         ctx.fill();
 
-        // Outer Rim Lip with Cyan Glow Accent
-        ctx.strokeStyle = '#06b6d4';
-        ctx.lineWidth = 1.8;
-        ctx.shadowColor = '#06b6d4';
-        ctx.shadowBlur = 6;
+        // Outer Tire Tread Groove
+        ctx.strokeStyle = '#1e293b';
+        ctx.lineWidth = 3.5;
         ctx.beginPath();
         ctx.arc(0, 0, wheelR * 0.88, 0, Math.PI * 2);
         ctx.stroke();
-        ctx.shadowBlur = 0;
 
-        // Dark Alloy Rim Barrel
-        ctx.fillStyle = '#1e293b';
+        // Alloy Rim Lip
+        ctx.strokeStyle = '#64748b';
+        ctx.lineWidth = 2.0;
         ctx.beginPath();
         ctx.arc(0, 0, wheelR * 0.84, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.stroke();
 
-        // Perforated Disc Brake Rotor
-        ctx.fillStyle = '#64748b';
+        // Dark Rim Barrel
+        ctx.fillStyle = '#1e293b';
         ctx.beginPath();
         ctx.arc(0, 0, wheelR * 0.62, 0, Math.PI * 2);
         ctx.fill();
 
-        // Neon Cyan High-Performance Brake Caliper
-        ctx.fillStyle = '#06b6d4';
-        ctx.shadowColor = '#06b6d4';
-        ctx.shadowBlur = 5;
+        // High-Performance Brembo Brake Caliper (Braking illuminates heat glow)
+        ctx.save();
+        const caliperBrakeHeat = (SIM.vehicleState === 'decelerating' && SIM.currentSpeed > 5) ? '#f97316' : '#dc2626';
+        ctx.fillStyle = caliperBrakeHeat;
+        ctx.shadowColor = caliperBrakeHeat;
+        ctx.shadowBlur = (SIM.vehicleState === 'decelerating') ? 14 : 0;
         ctx.beginPath();
         ctx.arc(0, 0, wheelR * 0.65, -0.6, 0.4);
-        ctx.lineWidth = 4;
-        ctx.strokeStyle = '#22d3ee';
+        ctx.lineWidth = 6;
+        ctx.strokeStyle = caliperBrakeHeat;
         ctx.stroke();
-        ctx.shadowBlur = 0;
+        ctx.restore();
 
-        // Inner Wheel Drum
-        ctx.fillStyle = '#0b1120';
+        // Inner Wheel Rotor Disc
+        ctx.fillStyle = '#334155';
         ctx.beginPath();
         ctx.arc(0, 0, wheelR * 0.52, 0, Math.PI * 2);
         ctx.fill();
 
-        // Silver Dual-Spoke Cyber Alloy Rims (Rotating with Wheel Angle)
+        // Silver Dual-Spoke Cyber Alloy Rims (Rotates strictly with wheelAngle)
         ctx.save();
         ctx.rotate(SIM.wheelAngle);
-        ctx.strokeStyle = '#f1f5f9';
-        ctx.lineWidth = 2.4;
-        ctx.shadowColor = '#94a3b8';
-        ctx.shadowBlur = 3;
-        const numSpokes = 5;
-        for (let s = 0; s < numSpokes; s++) {
-          const ang = (s / numSpokes) * Math.PI * 2;
+        ctx.strokeStyle = '#e2e8f0';
+        ctx.lineWidth = 3.0;
+        for (let i = 0; i < 5; i++) {
+          const ang = (i * Math.PI * 2) / 5;
           ctx.beginPath();
           ctx.moveTo(0, 0);
           ctx.lineTo(Math.cos(ang - 0.08) * wheelR * 0.78, Math.sin(ang - 0.08) * wheelR * 0.78);
@@ -1309,123 +1584,50 @@
           ctx.lineTo(Math.cos(ang + 0.08) * wheelR * 0.78, Math.sin(ang + 0.08) * wheelR * 0.78);
           ctx.stroke();
         }
-        // Center Wheel Hub Bolt with Glowing Center Cap
-        ctx.fillStyle = '#38bdf8';
-        ctx.shadowColor = '#38bdf8';
-        ctx.shadowBlur = 6;
+
+        // Center Wheel Hub Bolt with Glowing Cyan Logo
+        ctx.fillStyle = '#0f172a';
         ctx.beginPath();
-        ctx.arc(0, 0, 5, 0, Math.PI * 2);
+        ctx.arc(0, 0, wheelR * 0.16, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#38bdf8';
+        ctx.beginPath();
+        ctx.arc(0, 0, wheelR * 0.07, 0, Math.PI * 2);
         ctx.fill();
         ctx.restore();
 
-        ctx.restore();
+        ctx.restore(); // end wheel
       });
 
-      // --- 10. THREE-CHANNEL INDEPENDENT ENERGY VISUALIZATION PATHWAYS ---
-      // A. Kinetic Energy Channel (BLUE): Generator -> Supercapacitor
-      if (SIM.vKinetic > 0.05 || SIM.flywheelOmega > 1) {
-        ctx.save();
-        ctx.fillStyle = '#38bdf8';
-        ctx.shadowColor = '#0284c7';
-        ctx.shadowBlur = 8;
-        const kCount = Math.min(10, Math.floor(SIM.iKinetic / 5) + 3);
-        for (let p = 0; p < kCount; p++) {
-          const progress = (SIM.time * 3.5 + p * (1 / kCount)) % 1;
-          const px = genX + progress * (capBoxX - genX);
-          const py = genY + Math.sin(progress * Math.PI * 2 + SIM.time * 8) * 3;
-          ctx.beginPath();
-          ctx.arc(px, py, 2.2, 0, Math.PI * 2);
-          ctx.fill();
-        }
-        // Blue electric arc
-        ctx.strokeStyle = 'rgba(56, 189, 248, 0.45)';
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        ctx.moveTo(genX, genY);
-        ctx.lineTo(capBoxX, capBoxY + 8);
-        ctx.stroke();
-        ctx.restore();
-      }
-
-      // B. Thermal Energy Channel (ORANGE): Engine TEG -> Supercapacitor
-      if (SIM.vThermal > 0.05) {
-        ctx.save();
-        ctx.fillStyle = '#f97316';
-        ctx.shadowColor = '#ea580c';
-        ctx.shadowBlur = 8;
-        const tCount = Math.min(10, Math.floor(SIM.iThermal / 5) + 3);
-        for (let p = 0; p < tCount; p++) {
-          const progress = (SIM.time * 2.8 + p * (1 / tCount)) % 1;
-          const px = engineX - progress * (engineX - (capBoxX + capW));
-          const py = (engineY + 12) + progress * ((capBoxY + 8) - (engineY + 12)) + Math.sin(progress * Math.PI * 3 + SIM.time * 6) * 3;
-          ctx.beginPath();
-          ctx.arc(px, py, 2.2, 0, Math.PI * 2);
-          ctx.fill();
-        }
-        // Thermal heat waves above engine
-        ctx.strokeStyle = 'rgba(251, 146, 60, 0.4)';
-        ctx.lineWidth = 1.5;
-        for (let w = 0; w < 3; w++) {
-          const waveX = engineX + 6 + w * 10;
-          const waveY = engineY - 6 - ((SIM.time * 20 + w * 8) % 18);
-          ctx.beginPath();
-          ctx.moveTo(waveX - 3, waveY);
-          ctx.quadraticCurveTo(waveX, waveY - 4, waveX + 3, waveY - 8);
-          ctx.stroke();
-        }
-        ctx.restore();
-      }
-
-      // C. Vibration Energy Channel (PURPLE): Suspension Shock Towers -> Supercapacitor
-      if (SIM.vPiezo > 0.05 || SIM.piezoAmp >= 0.6) {
-        ctx.save();
-        ctx.fillStyle = '#c084fc';
-        ctx.shadowColor = '#a855f7';
-        ctx.shadowBlur = 8;
-        const vCount = Math.min(8, Math.floor(SIM.iPiezo / 2) + 2);
-        // From front shock
-        for (let p = 0; p < vCount; p++) {
-          const progress = (SIM.time * 3.8 + p * (1 / vCount)) % 1;
-          const px = frontShockX - progress * (frontShockX - (capBoxX + capW));
-          const py = (cy + carH * 0.65) + Math.sin(progress * Math.PI * 4 + SIM.time * 10) * 3.5;
-          ctx.beginPath();
-          ctx.arc(px, py, 2.0, 0, Math.PI * 2);
-          ctx.fill();
-        }
-        // From rear shock
-        for (let p = 0; p < vCount; p++) {
-          const progress = (SIM.time * 3.8 + p * (1 / vCount)) % 1;
-          const px = rearShockX + progress * (capBoxX - rearShockX);
-          const py = (cy + carH * 0.65) + Math.cos(progress * Math.PI * 4 + SIM.time * 10) * 3.5;
-          ctx.beginPath();
-          ctx.arc(px, py, 2.0, 0, Math.PI * 2);
-          ctx.fill();
-        }
-        ctx.restore();
-      }
+      ctx.restore(); // end chassis pitch & translation
+      ctx.restore(); // end camera shake
     }
 
     // ── Waveform Drawing (Oscilloscope) ──
     function drawWaveform() {
-      const W = waveCanvas.width / window.devicePixelRatio;
-      const H = 140;
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      waveCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      const W = waveCanvas.width / dpr;
+      const H = waveCanvas.height / dpr;
+
       waveCtx.clearRect(0, 0, W, H);
 
-      // Grid lines
-      waveCtx.strokeStyle = '#1e293b';
+      // Grid
+      waveCtx.strokeStyle = 'rgba(51, 65, 85, 0.4)';
       waveCtx.lineWidth = 1;
-      for (let y = 20; y < H; y += 28) {
+      for (let y = 20; y < H; y += 25) {
         waveCtx.beginPath();
         waveCtx.moveTo(0, y);
         waveCtx.lineTo(W, y);
         waveCtx.stroke();
       }
 
+      // Zero and Max labels
       waveCtx.fillStyle = '#64748b';
       waveCtx.font = '9px monospace';
       waveCtx.textAlign = 'left';
-      waveCtx.fillText('5V', 2, 14);
-      waveCtx.fillText('0V', 2, H - 4);
+      waveCtx.fillText('5.0V', 4, 14);
+      waveCtx.fillText('0.0V', 4, H - 4);
 
       if (SIM.waveHistory.length < 2) return;
 
@@ -1511,8 +1713,9 @@
       }
 
       // High Graphics Rendering
-      const cW = carCanvas.width / window.devicePixelRatio;
-      const cH = carCanvas.height / window.devicePixelRatio;
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const cW = carCanvas.width / dpr;
+      const cH = carCanvas.height / dpr;
       drawCarScene(carCtx, cW, cH);
       drawWaveform();
       updateUI();
@@ -1522,6 +1725,6 @@
     requestAnimationFrame(mainLoop);
 
   })();
-  </script>
+</script>
 </body>
 </html>
