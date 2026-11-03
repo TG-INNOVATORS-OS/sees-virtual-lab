@@ -229,13 +229,19 @@
           </div>
           <div>
             <div class="flex justify-between text-slate-400 mb-1">
-              <span>Suspension Frequency:</span>
-              <span class="font-mono text-purple-400" id="valPiezoFreq">28 Hz</span>
+              <span>Suspension Vibration Frequency:</span>
+              <span class="font-mono text-purple-400" id="valPiezoFreq">28 Hz (Simulated Nom.)</span>
             </div>
             <input type="range" id="sliderPiezoFreq" min="5" max="80" step="1" value="28" class="w-full h-1.5 bg-slate-800 rounded cursor-pointer">
           </div>
-          <div class="p-2 bg-slate-950 rounded-lg border border-purple-900/50 bg-purple-950/20 text-purple-300 font-mono text-[11px]">
-            <span>⚡ Increasing vibration adds visible physical road bumps and excites spring shock absorbers in real time!</span>
+          <div class="p-2 bg-slate-950 rounded-lg border border-purple-900/50 bg-purple-950/20 text-purple-300 font-mono text-[11px] space-y-1">
+            <div class="flex items-center gap-1.5 font-bold">
+              <span>⚡ PZT Cantilever Bimorph & MB6S Bridge</span>
+              <span class="text-[9px] px-1.5 py-0.2 rounded bg-purple-500/20 border border-purple-500/40 text-purple-300">SIMULATED</span>
+            </div>
+            <div class="text-[10px] text-slate-400 leading-relaxed">
+              PZT AC Output → MB6S Silicon Full-Wave Bridge (illustrative logarithmic 2×V<sub>F,Si</sub> loss; not experimentally or datasheet-validated) → D_ISO 1N5819 Schottky Isolation Diode → Common DC Bus.
+            </div>
           </div>
         </div>
       </div>
@@ -259,7 +265,10 @@
             <div class="text-[10px] font-mono text-slate-500" id="mThermI">0.0 mA</div>
           </div>
           <div class="bg-slate-950 rounded-xl border border-slate-800 p-2.5">
-            <div class="text-[10px] text-slate-500 uppercase font-bold">Piezo</div>
+            <div class="text-[10px] text-slate-500 uppercase font-bold flex justify-between">
+              <span>Piezo</span>
+              <span class="text-[8px] text-purple-400 font-mono">SIMULATED</span>
+            </div>
             <div class="text-sm font-bold font-mono text-purple-400" id="mPiezoV">0.00 V</div>
             <div class="text-[10px] font-mono text-slate-500" id="mPiezoI">0.0 mA</div>
           </div>
@@ -299,7 +308,7 @@
       <div class="flex flex-wrap justify-between text-[10px] text-slate-500 mt-1.5 gap-2">
         <span class="flex items-center gap-1"><span class="w-3 h-0.5 bg-sky-400 inline-block rounded"></span> Kinetic V (blue)</span>
         <span class="flex items-center gap-1"><span class="w-3 h-0.5 bg-amber-400 inline-block rounded"></span> Thermal V (amber)</span>
-        <span class="flex items-center gap-1"><span class="w-3 h-0.5 bg-purple-400 inline-block rounded"></span> Piezo V (purple)</span>
+        <span class="flex items-center gap-1"><span class="w-3 h-0.5 bg-purple-400 inline-block rounded"></span> Piezo V_rect (purple)</span>
         <span class="flex items-center gap-1"><span class="w-3 h-0.5 bg-emerald-400 inline-block rounded"></span> Bus V (green)</span>
         <span>Time Window: 6 seconds</span>
       </div>
@@ -382,9 +391,28 @@
       tCold: 25,
       seebeckCoeff: 0.032,
 
-      // Piezo rig parameters
+      // Piezo rig parameters (Stage 3 Enhanced: Multi-Stage Discrete Pipeline)
       piezoAmp: 1.5,
       piezoFreq: 28,
+      piezoNominalF0: 28.0, // illustrative simulation frequency tuning
+      cantileverDisp: 0,    // dynamic displacement of PZT cantilever beam
+      cantileverStress: 0,  // normalized root stress (-1.0 to +1.0)
+      cantileverTipSlope: 0,// tip slope w'(L)
+      rPiezoSim: 380.0,     // synthetic simulation source resistance (illustrative model)
+
+      // Electrical Stage Breakdown
+      vPiezoAC: 0,          // instantaneous alternating open-circuit AC voltage
+      vPiezoRect: 0,        // instantaneous pulsating DC after MB6S full-wave bridge
+      vPiezoPostDiode: 0,   // instantaneous available DC after D_ISO 1N5819 Schottky diode
+      vPiezoAvg: 0,         // smoothed average terminal voltage for numeric telemetry
+      iPiezoAvg: 0,         // smoothed average current for numeric telemetry
+      vPiezo: 0,            // active DC potential for bus combining
+      iPiezo: 0,            // instantaneous current flowing into bus
+      piezoIsolated: true,  // true if D_ISO is reverse-biased (blocking back-feeding)
+      mb6sHalfCycle: 1,     // 1 or 2: active conducting diode pair in Graetz bridge
+      mb6sLossV: 0,         // instantaneous voltage drop across 2 conducting silicon diodes
+      dIsoLossV: 0,         // instantaneous forward drop across D_ISO Schottky diode
+      piezoPhase: 0,        // electrical phase angle
 
       // Suspension & Chassis Dynamics
       suspensionBounce: 0,
@@ -392,7 +420,6 @@
       shockCompressionFront: 0,
       shockCompressionRear: 0,
       chassisPitch: 0, // pitch angle in radians (acceleration squat / braking dive)
-      cantileverDisp: 0, // dynamic displacement of PZT cantilever beam
 
       // Computed outputs
       vKinetic: 0, iKinetic: 0,
@@ -573,6 +600,16 @@
       SIM.shockCompression = 0;
       SIM.chassisPitch = 0;
       SIM.cantileverDisp = 0;
+      SIM.cantileverStress = 0;
+      SIM.cantileverTipSlope = 0;
+      SIM.vPiezoAC = 0;
+      SIM.vPiezoRect = 0;
+      SIM.vPiezoPostDiode = 0;
+      SIM.vPiezoAvg = 0;
+      SIM.iPiezoAvg = 0;
+      SIM.vPiezo = 0;
+      SIM.iPiezo = 0;
+      SIM.piezoIsolated = true;
       SIM.waveHistory = [];
       SIM.vehicleState = 'idle';
       SIM.paused = false;
@@ -643,7 +680,8 @@
 
     el.sliderPiezoFreq.addEventListener('input', e => {
       SIM.piezoFreq = parseFloat(e.target.value);
-      el.valPiezoFreq.textContent = `${SIM.piezoFreq} Hz`;
+      const isNom = Math.abs(SIM.piezoFreq - 28) <= 2;
+      el.valPiezoFreq.textContent = `${SIM.piezoFreq} Hz ${isNom ? '(Simulated Nom.)' : ''}`;
       SIM.piezoBurst = Math.min(1.0, SIM.piezoBurst + 0.4);
     });
 
@@ -708,10 +746,14 @@
       SIM.shockCompressionFront = Math.max(-8, Math.min(8, Math.sin(SIM.time * bumpFreq) * bumpMagnitude));
       SIM.shockCompressionRear  = Math.max(-8, Math.min(8, Math.sin(SIM.time * bumpFreq - 0.45) * bumpMagnitude));
 
-      // PZT Cantilever Beam dynamic displacement (stylized slow-motion mechanical deflection)
-      // Visual vibration displays the real amplitude while running at visual rate (6-12 Hz) so the human eye sees the cantilever
+      // PZT Cantilever Beam dynamic displacement (illustrative static tip-load deflection model, not a fundamental vibration mode)
+      // Visual oscillation runs at perceptible frequency while scaling with vibration frequency and amplitude
       const visualCantileverFreq = Math.min(14, 5 + SIM.piezoFreq * 0.12);
       SIM.cantileverDisp = Math.sin(SIM.time * visualCantileverFreq * (Math.PI * 2)) * (SIM.piezoAmp * 2.5);
+      // Normalized root bending stress (-1 to +1): maximum at clamped root, zero at tip proof mass
+      const maxDisp = Math.max(0.1, SIM.piezoAmp * 2.5);
+      SIM.cantileverStress = Math.max(-1.0, Math.min(1.0, SIM.cantileverDisp / maxDisp));
+      SIM.cantileverTipSlope = (1.5 * SIM.cantileverDisp) / 32.0; // w'(L) = 1.5 * delta / L
 
       // 3. Kinetic Flywheel / Rotor Dynamics & Axle Mechanical Coupling
       // Rear axle angular velocity: omega_axle = v_m/s / r_wheel
@@ -768,15 +810,80 @@
       SIM.vThermal = Math.max(0, vThermRaw - VF_DIODE);
       SIM.iThermal = SIM.vThermal > 0 ? (SIM.vThermal / 22.0) * 1000 : 0; // 22 ohm TEC internal + bus resistance
 
-      // 5. Piezo Output from Dynamic Suspension
-      // Output scales with displacement amplitude, frequency, and road speed vibration
-      const vibActivity = SIM.currentSpeed > 2 ? 0.35 + 0.65 * (SIM.currentSpeed / 90) : 0.12;
-      const vPiezoRaw = (SIM.piezoAmp * 0.75) * (SIM.piezoFreq / 28.0) * 1.85 * vibActivity;
-      // High-frequency rectified ripple
-      const rectifiedAC = Math.abs(Math.sin(Math.PI * SIM.piezoFreq * SIM.time));
-      const vPiezoInst = vPiezoRaw * (0.65 + 0.35 * rectifiedAC);
-      SIM.vPiezo = Math.max(0, vPiezoInst - VF_DIODE);
-      SIM.iPiezo = SIM.vPiezo > 0 ? (SIM.vPiezo / 380.0) * 1000 : 0; // high impedance PZT beam
+      // 5. Piezoelectric Harvester (Stage 3 Discrete Multi-Stage Pipeline)
+      // PZT Cantilever → AC Generation → MB6S Full-Wave Bridge → D_ISO 1N5819 Schottky → Common Bus
+      
+      // A. Illustrative single-degree-of-freedom frequency sensitivity around nominal 28 Hz
+      const fRatio = SIM.piezoFreq / SIM.piezoNominalF0;
+      const qFactor = 4.0; // illustrative simulation Q-factor
+      const sDOF_Response = 1.0 / Math.sqrt(Math.pow(1.0 - fRatio * fRatio, 2) + Math.pow(fRatio / qFactor, 2));
+
+      // Mechanical-to-electrical transduction (AC open-circuit peak)
+      const vibActivity = SIM.currentSpeed > 2 ? 0.35 + 0.65 * (SIM.currentSpeed / 90) : 0.15;
+      const vAcPeak = (SIM.piezoAmp * 0.72) * (0.45 + 0.55 * sDOF_Response) * 2.8 * vibActivity;
+
+      // Continuous AC electrical phase angle and instantaneous alternating voltage
+      SIM.piezoPhase = (SIM.time * SIM.piezoFreq * Math.PI * 2) % (Math.PI * 2);
+      const vAcInst = vAcPeak * Math.sin(SIM.piezoPhase);
+      SIM.vPiezoAC = vAcInst;
+
+      // Active half-cycle for MB6S Graetz bridge conduction
+      // Half-cycle 1 (vAc >= 0): Diodes 1 & 4 conduct; Half-cycle 2 (vAc < 0): Diodes 2 & 3 conduct
+      SIM.mb6sHalfCycle = vAcInst >= 0 ? 1 : 2;
+      const absVac = Math.abs(vAcInst);
+
+      // B. Diode Forward-Voltage Models (illustrative logarithmic approximations; not experimentally or datasheet-validated)
+      // MB6S per-diode drop:    Vf_MB6S(i_mA) = 0.55 + 0.065 * ln(1 + i_mA) [illustrative approximation]
+      // 1N5819 Schottky drop:   Vf_DIso(i_mA) = 0.22 + 0.045 * ln(1 + i_mA) [illustrative approximation]
+      function calcVfMB6S(iMA) {
+        return 0.55 + 0.065 * Math.log(1.0 + Math.max(0, iMA));
+      }
+      function calcVfDIso(iMA) {
+        return 0.22 + 0.045 * Math.log(1.0 + Math.max(0, iMA));
+      }
+
+      // C. Numerically Consistent Conduction Solution (5-Iteration Fixed-Point Convergence)
+      // Two silicon junctions in series: Vbridge = 2 * Vf_MB6S
+      // Zero-current conduction knee: 2 * 0.55 + 0.22 = 1.32V
+      // Contraction factor |f'(I)| <= 0.175 / (0.38 * (1 + I)) < 0.46 guarantees geometric convergence.
+      const kneeTotal = 2 * calcVfMB6S(0) + calcVfDIso(0); // 1.32V
+      let iInstMA = 0;
+      let vBridgeDrop = 2 * calcVfMB6S(0);
+      let vDIsoDrop = calcVfDIso(0);
+
+      if (absVac > kneeTotal + SIM.vBus) {
+        // Forward-biased: channel potential exceeds bridge drop + Schottky barrier + bus voltage
+        let iGuess = Math.max(0, (absVac - kneeTotal - SIM.vBus) / SIM.rPiezoSim * 1000);
+        for (let iter = 0; iter < 5; iter++) {
+          vBridgeDrop = 2 * calcVfMB6S(iGuess);
+          vDIsoDrop = calcVfDIso(iGuess);
+          const vDrive = absVac - vBridgeDrop - vDIsoDrop - SIM.vBus;
+          iGuess = Math.max(0, (vDrive / SIM.rPiezoSim) * 1000);
+        }
+        iInstMA = iGuess;
+        SIM.piezoIsolated = false;
+        SIM.vPiezoRect = Math.max(0, absVac - vBridgeDrop);
+        SIM.vPiezoPostDiode = Math.max(0, SIM.vPiezoRect - vDIsoDrop);
+      } else {
+        // Reverse-biased or below threshold: zero current flows; D_ISO isolates piezo from common bus
+        iInstMA = 0;
+        SIM.piezoIsolated = true;
+        vBridgeDrop = 2 * calcVfMB6S(0);
+        vDIsoDrop = calcVfDIso(0);
+        SIM.vPiezoRect = Math.max(0, absVac - vBridgeDrop);
+        // Under reverse bias, post-D_ISO cathode potential is clamped to bus voltage (cannot exceed Vbus)
+        SIM.vPiezoPostDiode = Math.min(SIM.vBus, Math.max(0, SIM.vPiezoRect - vDIsoDrop));
+      }
+
+      SIM.iPiezo = iInstMA;
+      SIM.mb6sLossV = vBridgeDrop;
+      SIM.dIsoLossV = vDIsoDrop;
+      SIM.vPiezo = SIM.vPiezoPostDiode;
+
+      // Smoothed running average for jitter-free digital telemetry readout (5Hz smoothing)
+      const smoothAlpha = Math.min(1.0, dt * 5.0);
+      SIM.vPiezoAvg += (SIM.vPiezoPostDiode - SIM.vPiezoAvg) * smoothAlpha;
+      SIM.iPiezoAvg += (SIM.iPiezo - SIM.iPiezoAvg) * smoothAlpha;
 
       // 6. Layer 3: Diode-OR Combining Bus Architecture (Strict Engineering Truth)
       // Highest potential forward-biases the common bus; weaker channels isolated by Schottky diodes
@@ -784,7 +891,7 @@
       SIM.totalCurrentMA = 0;
       if (SIM.vKinetic >= Math.max(0.05, SIM.vBus - 0.08)) SIM.totalCurrentMA += SIM.iKinetic;
       if (SIM.vThermal >= Math.max(0.05, SIM.vBus - 0.08)) SIM.totalCurrentMA += SIM.iThermal;
-      if (SIM.vPiezo >= Math.max(0.05, SIM.vBus - 0.08)) SIM.totalCurrentMA += SIM.iPiezo;
+      if (SIM.vPiezo >= Math.max(0.05, SIM.vBus - 0.08) && !SIM.piezoIsolated) SIM.totalCurrentMA += SIM.iPiezo;
 
       SIM.totalPowerMW = SIM.vBus * SIM.totalCurrentMA;
 
@@ -805,7 +912,7 @@
         t: SIM.time,
         vKin: SIM.vKinetic,
         vTherm: SIM.vThermal,
-        vPiezo: SIM.vPiezo,
+        vPiezo: SIM.vPiezoRect, // authentic pulsating full-wave rectified DC
         vBus: SIM.vBus,
       });
       if (SIM.waveHistory.length > SIM.maxWavePoints) SIM.waveHistory.shift();
@@ -1595,7 +1702,9 @@
       ctx.restore();
 
       // ─────────────────────────────────────────────────────────────
-      // C. SUSPENSION DYNAMICS & CLEARLY VISIBLE PZT CANTILEVER
+      // C. SUSPENSION DYNAMICS & PZT CANTILEVER HARVESTER (STAGE 3 ENHANCED)
+      // Illustrative cubic beam curvature, stress tensor heatmap,
+      // MB6S full-wave bridge rectifier & D_ISO 1N5819 Schottky isolation
       // ─────────────────────────────────────────────────────────────
       const frontShockX = carX + carW * 0.78;
       const rearShockX = carX + carW * 0.22;
@@ -1604,47 +1713,270 @@
       drawCoilSpring(ctx, frontShockX, cy + carH * 0.48 - SIM.shockCompressionFront, cy + carH * 0.76, 7.5, 6, '#c084fc');
       drawCoilSpring(ctx, rearShockX, cy + carH * 0.48 - SIM.shockCompressionRear, cy + carH * 0.76, 7.5, 6, '#c084fc');
 
-      // Clearly visible Piezoelectric Cantilever Harvester Unit
-      // Mounted adjacent to the front suspension upright
-      const pztBaseX = frontShockX - 32;
+      // 1. PZT Cantilever Mounting Bracket & Geometry
+      const pztBaseX = frontShockX - 38;
       const pztBaseY = cy + carH * 0.58;
-      const pztLength = 26;
+      const pztLength = 32;
 
-      // Rigid mounting clamp
-      ctx.fillStyle = '#64748b';
-      ctx.fillRect(pztBaseX - 4, pztBaseY - 6, 6, 12);
-
-      // Dynamic Cantilever Beam with stylized displacement deflection
-      const tipDeflection = SIM.cantileverDisp; // proportional to piezoAmp
+      // Rigid Structural Clamp Bracket (Zero deflection and zero slope boundary)
       ctx.save();
-      ctx.strokeStyle = '#c084fc';
-      ctx.lineWidth = 2.8;
-      ctx.shadowColor = '#a855f7';
-      ctx.shadowBlur = 6 + (SIM.piezoAmp / 4.0) * 8;
-      ctx.beginPath();
-      ctx.moveTo(pztBaseX, pztBaseY);
-      ctx.quadraticCurveTo(pztBaseX + pztLength * 0.5, pztBaseY, pztBaseX + pztLength, pztBaseY + tipDeflection);
-      ctx.stroke();
+      ctx.fillStyle = '#334155';
+      ctx.strokeStyle = '#64748b';
+      ctx.lineWidth = 1.2;
+      ctx.strokeRect(pztBaseX - 5, pztBaseY - 8, 6, 16);
+      ctx.fillRect(pztBaseX - 5, pztBaseY - 8, 6, 16);
 
-      // Inertial Tungsten Tip Mass (Nut / Proof Mass)
-      const tipX = pztBaseX + pztLength;
-      const tipY = pztBaseY + tipDeflection;
-      ctx.fillStyle = '#fbbf24'; // Brass/gold tip mass
-      ctx.shadowColor = '#fbbf24';
-      ctx.shadowBlur = 6;
+      // Micro clamp bolt rivets
+      ctx.fillStyle = '#94a3b8';
       ctx.beginPath();
-      ctx.arc(tipX, tipY, 3.8, 0, Math.PI * 2);
+      ctx.arc(pztBaseX - 2, pztBaseY - 4.5, 1.2, 0, Math.PI * 2);
+      ctx.arc(pztBaseX - 2, pztBaseY + 4.5, 1.2, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
 
-      // Micro full-bridge rectifier chip next to cantilever
-      ctx.fillStyle = '#1e1b4b';
+      // 2. Dynamic Cantilever Bimorph Beam (Illustrative Static Tip-Load Deflection Model, not a fundamental vibration mode)
+      // Evaluated along 16 segments using illustrative static tip-load profile:
+      // w(xi) = delta_tip * (3*xi^2 - xi^3)/2; curvature kappa(xi) = 3*delta_tip*(1 - xi)
+      const tipDeflection = SIM.cantileverDisp;
+      const beamSteps = 16;
+      const beamPoints = [];
+      for (let s = 0; s <= beamSteps; s++) {
+        const xi = s / beamSteps; // 0 to 1
+        const bx = pztBaseX + xi * pztLength;
+        const by = pztBaseY + tipDeflection * (3.0 * xi * xi - xi * xi * xi) * 0.5;
+        const curvatureFactor = 1.0 - xi; // maximum at clamp root (xi=0), zero at tip (xi=1)
+        beamPoints.push({ x: bx, y: by, xi, curvatureFactor });
+      }
+
+      // Draw Top Piezoceramic Layer (Offset -1.4px)
+      // Stress: When bent upward (tipDeflection < 0), top is in compression (cyan-violet)
+      // When bent downward (tipDeflection > 0), top is in tension (searing ruby-magenta)
+      for (let s = 0; s < beamSteps; s++) {
+        const p1 = beamPoints[s];
+        const p2 = beamPoints[s + 1];
+        const avgCurv = (p1.curvatureFactor + p2.curvatureFactor) * 0.5;
+        const stressIntensity = Math.min(1.0, Math.abs(SIM.cantileverStress) * avgCurv);
+
+        let topColor;
+        if (tipDeflection < 0) {
+          // Compression (electric cyan-violet)
+          topColor = `rgba(168, 85, 247, ${0.45 + stressIntensity * 0.55})`;
+        } else {
+          // Tension (hot magenta-crimson)
+          topColor = `rgba(244, 63, 94, ${0.45 + stressIntensity * 0.55})`;
+        }
+
+        ctx.strokeStyle = topColor;
+        ctx.lineWidth = 1.6;
+        ctx.shadowColor = topColor;
+        ctx.shadowBlur = 4 * stressIntensity;
+        ctx.beginPath();
+        ctx.moveTo(p1.x, p1.y - 1.3);
+        ctx.lineTo(p2.x, p2.y - 1.3);
+        ctx.stroke();
+      }
+
+      // Draw Center Elastic Brass Shim
+      ctx.strokeStyle = '#d97706';
+      ctx.lineWidth = 0.9;
+      ctx.shadowBlur = 0;
+      ctx.beginPath();
+      for (let s = 0; s <= beamSteps; s++) {
+        const p = beamPoints[s];
+        if (s === 0) ctx.moveTo(p.x, p.y); else ctx.lineTo(p.x, p.y);
+      }
+      ctx.stroke();
+
+      // Draw Bottom Piezoceramic Layer (Offset +1.4px)
+      // Stress: Complementary reverse polarity to top layer
+      for (let s = 0; s < beamSteps; s++) {
+        const p1 = beamPoints[s];
+        const p2 = beamPoints[s + 1];
+        const avgCurv = (p1.curvatureFactor + p2.curvatureFactor) * 0.5;
+        const stressIntensity = Math.min(1.0, Math.abs(SIM.cantileverStress) * avgCurv);
+
+        let botColor;
+        if (tipDeflection < 0) {
+          // Tension (hot magenta-crimson)
+          botColor = `rgba(244, 63, 94, ${0.45 + stressIntensity * 0.55})`;
+        } else {
+          // Compression (electric cyan-violet)
+          botColor = `rgba(168, 85, 247, ${0.45 + stressIntensity * 0.55})`;
+        }
+
+        ctx.strokeStyle = botColor;
+        ctx.lineWidth = 1.6;
+        ctx.shadowColor = botColor;
+        ctx.shadowBlur = 4 * stressIntensity;
+        ctx.beginPath();
+        ctx.moveTo(p1.x, p1.y + 1.3);
+        ctx.lineTo(p2.x, p2.y + 1.3);
+        ctx.stroke();
+      }
+
+      // 3. Inertial Tungsten Tip Proof Mass (Zero Curvature Mounting)
+      const tipPt = beamPoints[beamSteps];
+      ctx.save();
+      ctx.translate(tipPt.x, tipPt.y);
+      // Tip tangent slope angle
+      const tipAngle = Math.atan2(SIM.cantileverTipSlope, 1.0);
+      ctx.rotate(tipAngle);
+
+      // Machined Tungsten / Brass Ballast Block
+      ctx.fillStyle = '#fbbf24';
+      ctx.strokeStyle = '#fef08a';
+      ctx.lineWidth = 1.0;
+      ctx.shadowColor = '#f59e0b';
+      ctx.shadowBlur = 6;
+      ctx.fillRect(0, -4.5, 6.5, 9);
+      ctx.strokeRect(0, -4.5, 6.5, 9);
+
+      // Proof mass center fastener screw
+      ctx.fillStyle = '#78350f';
+      ctx.beginPath();
+      ctx.arc(3.2, 0, 1.1, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+
+      // 4. Flexible Copper AC Output Leads with Dynamic Charge Polarity
+      const mb6sX = pztBaseX - 22;
+      const mb6sY = pztBaseY - 7;
+      const mb6sW = 15;
+      const mb6sH = 14;
+
+      ctx.save();
+      ctx.strokeStyle = '#f59e0b';
+      ctx.lineWidth = 1.0;
+      ctx.beginPath();
+      // AC Lead 1: from top electrode to MB6S ~ terminal (top-right)
+      ctx.moveTo(pztBaseX + 2, pztBaseY - 2);
+      ctx.lineTo(mb6sX + mb6sW, mb6sY + 3.5);
+      // AC Lead 2: from bottom electrode to MB6S ~ terminal (bottom-right)
+      ctx.moveTo(pztBaseX + 2, pztBaseY + 2);
+      ctx.lineTo(mb6sX + mb6sW, mb6sY + mb6sH - 3.5);
+      ctx.stroke();
+
+      // Alternating AC Charge Markers (+ / −)
+      if (Math.abs(SIM.vPiezoAC) > 0.4) {
+        ctx.font = '6px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillStyle = SIM.mb6sHalfCycle === 1 ? '#38bdf8' : '#f43f5e';
+        ctx.fillText(SIM.mb6sHalfCycle === 1 ? '+' : '−', pztBaseX - 3, pztBaseY - 3);
+        ctx.fillStyle = SIM.mb6sHalfCycle === 1 ? '#f43f5e' : '#38bdf8';
+        ctx.fillText(SIM.mb6sHalfCycle === 1 ? '−' : '+', pztBaseX - 3, pztBaseY + 6);
+      }
+      ctx.restore();
+
+      // 5. MB6S Full-Wave Bridge Rectifier (TO-269AA / MBS SMD Package)
+      ctx.save();
+      ctx.fillStyle = '#0f172a';
+      ctx.strokeStyle = '#818cf8';
+      ctx.lineWidth = 1.3;
+      ctx.shadowColor = '#6366f1';
+      ctx.shadowBlur = 4;
+      ctx.strokeRect(mb6sX, mb6sY, mb6sW, mb6sH);
+      ctx.fillRect(mb6sX, mb6sY, mb6sW, mb6sH);
+
+      // Pin 1 chamfer orientation notch (top-left)
+      ctx.fillStyle = '#818cf8';
+      ctx.beginPath();
+      ctx.moveTo(mb6sX, mb6sY);
+      ctx.lineTo(mb6sX + 3.5, mb6sY);
+      ctx.lineTo(mb6sX, mb6sY + 3.5);
+      ctx.closePath();
+      ctx.fill();
+
+      // Terminal Polarity Marks molded on package
+      ctx.font = '5px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#a5b4fc';
+      ctx.fillText('~', mb6sX + mb6sW - 2.5, mb6sY + 5);
+      ctx.fillText('~', mb6sX + mb6sW - 2.5, mb6sY + mb6sH - 2);
+      ctx.fillText('+', mb6sX + 3.5, mb6sY + 5);
+      ctx.fillText('−', mb6sX + 3.5, mb6sY + mb6sH - 2);
+
+      // Internal Graetz Full-Wave Diode Bridge Conduction Graphic
+      // Shows two silicon diodes conducting in series per half-cycle
+      const d1_4Active = SIM.mb6sHalfCycle === 1 && Math.abs(SIM.vPiezoAC) > 0.3;
+      const d2_3Active = SIM.mb6sHalfCycle === 2 && Math.abs(SIM.vPiezoAC) > 0.3;
+
+      // Diode pair 1 & 4 (Top & Right arms)
+      ctx.fillStyle = d1_4Active ? '#34d399' : '#334155';
+      ctx.shadowColor = d1_4Active ? '#34d399' : 'transparent';
+      ctx.shadowBlur = d1_4Active ? 5 : 0;
+      ctx.beginPath();
+      ctx.arc(mb6sX + mb6sW * 0.5, mb6sY + 4, 1.3, 0, Math.PI * 2);
+      ctx.arc(mb6sX + mb6sW * 0.68, mb6sY + mb6sH * 0.5, 1.3, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Diode pair 2 & 3 (Bottom & Left arms)
+      ctx.fillStyle = d2_3Active ? '#34d399' : '#334155';
+      ctx.shadowColor = d2_3Active ? '#34d399' : 'transparent';
+      ctx.shadowBlur = d2_3Active ? 5 : 0;
+      ctx.beginPath();
+      ctx.arc(mb6sX + mb6sW * 0.5, mb6sY + mb6sH - 4, 1.3, 0, Math.PI * 2);
+      ctx.arc(mb6sX + mb6sW * 0.32, mb6sY + mb6sH * 0.5, 1.3, 0, Math.PI * 2);
+      ctx.fill();
+
+      // MB6S Label
+      ctx.fillStyle = '#e0e7ff';
+      ctx.font = '5px monospace';
+      ctx.shadowBlur = 0;
+      ctx.fillText('MB6S', mb6sX + mb6sW * 0.5, mb6sY + mb6sH * 0.5 + 1.5);
+      ctx.restore();
+
+      // 6. D_ISO: 1N5819 Schottky Isolation Diode (DO-41 Axial Package)
+      // Anode connects to MB6S (+) terminal; Cathode connects to common bus
+      const dIsoX = mb6sX - 16;
+      const dIsoY = mb6sY + 1.5;
+      const dIsoW = 10;
+      const dIsoH = 7;
+
+      ctx.save();
+      // Anode lead jumper wire: MB6S Pin 1 (+) -> D_ISO Anode
       ctx.strokeStyle = '#c084fc';
       ctx.lineWidth = 1.2;
-      ctx.strokeRect(pztBaseX - 22, pztBaseY - 5, 14, 10);
-      ctx.fillStyle = '#e9d5ff';
-      ctx.font = '7px monospace';
-      ctx.fillText('PZT', pztBaseX - 20, pztBaseY + 3);
+      ctx.beginPath();
+      ctx.moveTo(mb6sX, mb6sY + 4);
+      ctx.lineTo(dIsoX + dIsoW, dIsoY + dIsoH * 0.5);
+      ctx.stroke();
+
+      // DO-41 Diode Body
+      const isDIsoForward = !SIM.piezoIsolated && SIM.iPiezo > 0.05;
+      ctx.fillStyle = '#1e293b';
+      ctx.strokeStyle = isDIsoForward ? '#34d399' : '#64748b';
+      ctx.lineWidth = 1.2;
+      ctx.shadowColor = isDIsoForward ? '#34d399' : 'transparent';
+      ctx.shadowBlur = isDIsoForward ? 8 : 0;
+      ctx.strokeRect(dIsoX, dIsoY, dIsoW, dIsoH);
+      ctx.fillRect(dIsoX, dIsoY, dIsoW, dIsoH);
+
+      // Silver Cathode Polarity Band (Left side, pointing to common bus)
+      ctx.fillStyle = isDIsoForward ? '#a7f3d0' : '#cbd5e1';
+      ctx.fillRect(dIsoX, dIsoY, 2.5, dIsoH);
+
+      // Biasing State Graphic
+      if (isDIsoForward) {
+        // Forward conducting: green forward chevron
+        ctx.fillStyle = '#34d399';
+        ctx.font = '6px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('►', dIsoX + dIsoW * 0.65, dIsoY + 5.5);
+      } else {
+        // Reverse-biased (isolated): amber blocking barrier bar
+        ctx.fillStyle = '#f59e0b';
+        ctx.font = '6px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('❙◄', dIsoX + dIsoW * 0.65, dIsoY + 5.5);
+      }
+
+      // Micro Label
+      ctx.fillStyle = '#cbd5e1';
+      ctx.font = '5px monospace';
+      ctx.textAlign = 'center';
+      ctx.shadowBlur = 0;
+      ctx.fillText('D_ISO', dIsoX + dIsoW * 0.5, dIsoY - 2);
+      ctx.restore();
 
       // ─────────────────────────────────────────────────────────────
       // D. GLOWING SUPERCAPACITOR BUFFER & COMBINING BUS
@@ -1667,8 +1999,8 @@
       // Thermal conduit: tec -> cap
       ctx.moveTo(tecX, tecY + 10);
       ctx.lineTo(capBoxX + capW, capBoxY + 6);
-      // Piezo conduit: pzt bridge -> cap
-      ctx.moveTo(pztBaseX - 8, pztBaseY);
+      // Piezo conduit: D_ISO cathode -> central bus
+      ctx.moveTo(dIsoX, dIsoY + dIsoH * 0.5);
       ctx.lineTo(capBoxX + capW * 0.8, capBoxY);
       ctx.stroke();
 
@@ -1891,32 +2223,104 @@
         ctx.restore();
       }
 
-      // 3. Piezoelectric Pathway (PURPLE): PZT Rectifier -> Central Supercapacitor
-      if (SIM.vPiezo > 0.05 || SIM.piezoAmp >= 0.6) {
-        ctx.save();
-        ctx.fillStyle = '#c084fc';
-        ctx.shadowColor = '#a855f7';
-        ctx.shadowBlur = 8;
-        const currentRatio = Math.min(1.0, SIM.iPiezo / 8.0);
-        const vCount = Math.min(POOL_SIZE, Math.floor(currentRatio * 14) + 4);
-        const particleSpeed = 1.4 + (SIM.piezoFreq / 40.0) * 1.8;
+      // 3. Piezoelectric Pathway (PURPLE): D_ISO Schottky Output -> Central Supercapacitor (STAGE 3 ENHANCED)
+      const dIsoOriginX = dIsoX;
+      const dIsoOriginY = dIsoY + dIsoH * 0.5;
+      const capPiezoNodeX = capBoxX + capW * 0.8;
+      const capPiezoNodeY = capBoxY;
 
+      if (!SIM.piezoIsolated && SIM.iPiezo > 0.02) {
+        ctx.save();
+        const currentRatio = Math.min(1.0, SIM.iPiezo / 8.0);
+        const vCount = Math.min(POOL_SIZE, Math.floor(currentRatio * 18) + 4);
+        const particleSpeed = 1.2 + (SIM.piezoFreq / 30.0) * 1.5;
+
+        // Active conduit pulsating glow
+        const wireAlpha = 0.35 + currentRatio * 0.55;
+        ctx.strokeStyle = `rgba(192, 132, 252, ${wireAlpha})`;
+        ctx.lineWidth = 1.8 + currentRatio * 1.4;
+        ctx.shadowColor = '#a855f7';
+        ctx.shadowBlur = 6 + currentRatio * 8;
+        ctx.beginPath();
+        ctx.moveTo(dIsoOriginX, dIsoOriginY);
+        ctx.lineTo(capPiezoNodeX, capPiezoNodeY);
+        ctx.stroke();
+
+        // High-frequency conduction wave pulse along the wire
+        if (currentRatio > 0.12) {
+          const wavePhase = (SIM.time * 20 * particleSpeed) % (Math.PI * 2);
+          ctx.strokeStyle = '#ffffff';
+          ctx.lineWidth = 1.2;
+          ctx.beginPath();
+          const waveSteps = 16;
+          for (let w = 0; w <= waveSteps; w++) {
+            const wProg = w / waveSteps;
+            const wx = dIsoOriginX - wProg * (dIsoOriginX - capPiezoNodeX);
+            const wy = dIsoOriginY + wProg * (capPiezoNodeY - dIsoOriginY) + Math.sin(wProg * Math.PI * 6 + wavePhase) * (1.0 * currentRatio);
+            if (w === 0) ctx.moveTo(wx, wy); else ctx.lineTo(wx, wy);
+          }
+          ctx.stroke();
+        }
+
+        // Cinematic Particles with Comet Tails
         for (let p = 0; p < vCount; p++) {
           const pt = piezoParticles[p];
-          pt.progress = (pt.progress + pt.speed * particleSpeed * dt * 0.7) % 1.0;
+          pt.progress = (pt.progress + pt.speed * particleSpeed * dt * 0.70) % 1.0;
           const prog = pt.progress;
-          const px = (pztBaseX - 10) - prog * ((pztBaseX - 10) - (capBoxX + capW * 0.8));
-          const py = pztBaseY + prog * (capBoxY - pztBaseY) + Math.cos(prog * Math.PI * 4 + SIM.time * 14) * pt.lateral;
-          const pSize = 1.7 + currentRatio * 1.4;
+
+          // Conduit coordinates
+          const px = dIsoOriginX - prog * (dIsoOriginX - capPiezoNodeX);
+          const py = dIsoOriginY + prog * (capPiezoNodeY - dIsoOriginY) + Math.cos(prog * Math.PI * 4 + SIM.time * 12) * pt.lateral;
+
+          // Comet tail vector pointing backwards
+          const tailLen = (5 + particleSpeed * 2.3) * (1 - prog * 0.25);
+          const dx = capPiezoNodeX - dIsoOriginX;
+          const dy = capPiezoNodeY - dIsoOriginY;
+          const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+          const tailX = px - (dx / dist) * tailLen;
+          const tailY = py - (dy / dist) * tailLen;
+
+          // Trailing comet gradient (hot violet to transparent)
+          const cometGrad = ctx.createLinearGradient(tailX, tailY, px, py);
+          cometGrad.addColorStop(0.0, 'rgba(168, 85, 247, 0.0)');
+          cometGrad.addColorStop(0.65, 'rgba(192, 132, 252, 0.65)');
+          cometGrad.addColorStop(1.0, '#ffffff');
+
+          ctx.strokeStyle = cometGrad;
+          ctx.lineWidth = 1.8 + currentRatio * 1.2;
           ctx.beginPath();
-          ctx.arc(px, py, pSize, 0, Math.PI * 2);
+          ctx.moveTo(tailX, tailY);
+          ctx.lineTo(px, py);
+          ctx.stroke();
+
+          // Glowing Spark Head
+          ctx.fillStyle = '#ffffff';
+          ctx.shadowColor = '#c084fc';
+          ctx.shadowBlur = 8 + currentRatio * 6;
+          ctx.beginPath();
+          ctx.arc(px, py, 1.8 + currentRatio * 1.2, 0, Math.PI * 2);
           ctx.fill();
         }
-        ctx.strokeStyle = `rgba(192, 132, 252, ${0.3 + currentRatio * 0.5})`;
-        ctx.lineWidth = 1.8;
+
+        // Supercapacitor Terminal Spark Splash at Piezo Entry Node
+        if (currentRatio > 0.2 && Math.sin(SIM.time * 24) > 0.2) {
+          ctx.fillStyle = '#c084fc';
+          ctx.shadowColor = '#a855f7';
+          ctx.shadowBlur = 8;
+          ctx.beginPath();
+          ctx.arc(capPiezoNodeX, capPiezoNodeY, 2.6, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        ctx.restore();
+      } else {
+        // Reverse-biased or quiescent: faint muted conduit indicating isolation
+        ctx.save();
+        ctx.strokeStyle = 'rgba(148, 163, 184, 0.22)';
+        ctx.lineWidth = 1.2;
         ctx.beginPath();
-        ctx.moveTo(pztBaseX - 10, pztBaseY);
-        ctx.lineTo(capBoxX + capW * 0.8, capBoxY);
+        ctx.moveTo(dIsoOriginX, dIsoOriginY);
+        ctx.lineTo(capPiezoNodeX, capPiezoNodeY);
         ctx.stroke();
         ctx.restore();
       }
@@ -2061,8 +2465,8 @@
 
       const rigLabels = { kinetic: 'Kinetic Output', thermal: 'Thermal Output', piezo: 'Piezo Output' };
       const rigColors = { kinetic: '#38bdf8', thermal: '#fbbf24', piezo: '#c084fc' };
-      const rigV = { kinetic: SIM.vKinetic, thermal: SIM.vThermal, piezo: SIM.vPiezo };
-      const rigI = { kinetic: SIM.iKinetic, thermal: SIM.iThermal, piezo: SIM.iPiezo };
+      const rigV = { kinetic: SIM.vKinetic, thermal: SIM.vThermal, piezo: SIM.vPiezoAvg };
+      const rigI = { kinetic: SIM.iKinetic, thermal: SIM.iThermal, piezo: SIM.iPiezoAvg };
 
       el.hudRigLabel.textContent = rigLabels[SIM.activeRig];
       el.hudRigVoltage.style.color = rigColors[SIM.activeRig];
@@ -2076,8 +2480,8 @@
       el.mKinI.textContent = `${SIM.iKinetic.toFixed(1)} mA`;
       el.mThermV.textContent = `${SIM.vThermal.toFixed(2)} V`;
       el.mThermI.textContent = `${SIM.iThermal.toFixed(1)} mA`;
-      el.mPiezoV.textContent = `${SIM.vPiezo.toFixed(2)} V`;
-      el.mPiezoI.textContent = `${SIM.iPiezo.toFixed(1)} mA`;
+      el.mPiezoV.textContent = `${SIM.vPiezoAvg.toFixed(2)} V`;
+      el.mPiezoI.textContent = `${SIM.iPiezoAvg.toFixed(1)} mA`;
       el.mBusV.textContent = `${SIM.vBus.toFixed(2)} V`;
       el.mBusPow.textContent = `${SIM.totalPowerMW.toFixed(1)} mW`;
 
@@ -2121,6 +2525,19 @@
       drawWaveform();
       updateUI();
     }
+
+    // Optional URL query parameters initialization
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const qRig = urlParams.get('rig');
+      if (qRig && ['kinetic', 'thermal', 'piezo'].includes(qRig)) {
+        window.selectRig(qRig);
+      }
+      const qState = urlParams.get('state');
+      if (qState && ['idle', 'accelerating', 'cruising', 'decelerating'].includes(qState)) {
+        window.setVehicleState(qState);
+      }
+    } catch (e) {}
 
     // Initialize
     requestAnimationFrame(mainLoop);
